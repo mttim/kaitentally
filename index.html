@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sushi Splitter</title>
+    <title>Kaiten Tally</title>
     <style>
         /* --- ตั้งค่าพื้นฐาน --- */
         :root {
             --bg-color: #f4f6f8;
             --text-main: #333;
-            --brand-color: #e60012; /* สีแดงแบรนด์หลัก */
+            --brand-color: #e60012;
         }
 
         body {
@@ -285,7 +285,7 @@
 
     <main id="plate-grid"></main>
 
-    <button class="floating-btn" id="btn-checkout" onclick="showBill()">🧾 เช็คบิล (รวม 10%)</button>
+    <button class="floating-btn" id="btn-checkout" onclick="showBill()">🧾 เช็คบิล (บวก 10%)</button>
 
     <div class="modal" id="bill-modal">
         <div class="modal-content">
@@ -324,8 +324,6 @@
 
     <script>
         // ---------------- ข้อมูลจานทั้ง 2 ร้าน ---------------- //
-        
-        // 1. Katsu Midori (ข้อมูลเดิมของคุณ)
         const katsuData = [
             { id: 'p40', price: 40, name: 'แดง', color: '#e60012', textColor: 'white' },
             { id: 'p50', price: 50, name: 'ฟ้าอมเขียว', color: '#00838f', textColor: 'white' },
@@ -341,7 +339,6 @@
             { id: 'p180', price: 180, name: 'กรมท่าตาราง', color: '#1f2e4d', textColor: 'white', border: 'border: 3px solid white;', pattern: 'background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05), rgba(255,255,255,0.05) 2px, transparent 2px, transparent 6px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.05), rgba(255,255,255,0.05) 2px, transparent 2px, transparent 6px); background-color: #1f2e4d;' }
         ];
 
-        // 2. Sushiro (ข้อมูล 4 จานมาตรฐานในไทย)
         const sushiroData = [
             { id: 's40', price: 40, name: 'จานแดง', color: '#e60012', textColor: 'white' },
             { id: 's60', price: 60, name: 'จานเงิน', color: '#e0e0e0', textColor: '#333', darkText: true, border: 'border: 3px solid #ccc;' },
@@ -349,45 +346,32 @@
             { id: 's120', price: 120, name: 'จานดำ', color: '#1a1a1a', textColor: 'white', border: 'border: 3px solid #444;' }
         ];
 
-        // ---------------- ระบบตัวแปร ---------------- //
-        let currentShop = 'katsu'; // ค่าเริ่มต้นเป็น katsu
+        let currentShop = 'katsu'; 
         
-        // แยกเก็บจำนวนจานของแต่ละร้านไม่ให้ปนกัน
         let counts = {
             katsu: {},
             sushiro: {}
         };
         
-        // กำหนดค่าเริ่มต้นเป็น 0 ให้ทั้ง 2 ร้าน
         katsuData.forEach(plate => counts.katsu[plate.id] = 0);
         sushiroData.forEach(plate => counts.sushiro[plate.id] = 0);
 
-        // ---------------- ระบบการทำงาน (Logic) ---------------- //
-
-        // ฟังก์ชันสลับแท็บร้านอาหาร
         function switchTab(shop) {
             currentShop = shop;
             
-            // อัปเดต UI ของปุ่ม Tab
             document.getElementById('tab-katsu').classList.remove('active');
             document.getElementById('tab-sushiro').classList.remove('active');
             document.getElementById('tab-' + shop).classList.add('active');
 
-            // เปลี่ยนสี Theme และข้อความ
             if(shop === 'katsu') {
                 document.documentElement.style.setProperty('--brand-color', '#e60012');
-                document.getElementById('app-title').innerText = '🍣 Kaiten Tally';
-                document.getElementById('btn-checkout').innerText = '🧾 เช็คบิล (บวก 10%)';
             } else {
                 document.documentElement.style.setProperty('--brand-color', '#cc0000');
-                document.getElementById('app-title').innerText = '🍣 Sushiro Splitter';
-                document.getElementById('btn-checkout').innerText = '🧾 เช็คบิล (ราคา Net)';
             }
 
             renderGrid();
         }
 
-        // ฟังก์ชันวาดหน้าจอ (เลือกดึงข้อมูลตามร้านที่เปิดอยู่)
         function renderGrid() {
             const grid = document.getElementById('plate-grid');
             grid.innerHTML = ''; 
@@ -415,14 +399,12 @@
             });
         }
 
-        // ฟังก์ชันบวกจาน
         function addPlate(id) {
             counts[currentShop][id] += 1;
             document.getElementById('count-' + id).innerText = counts[currentShop][id];
             if (navigator.vibrate) navigator.vibrate(40);
         }
 
-        // ฟังก์ชันลบจาน
         function removePlate(id) {
             if (counts[currentShop][id] > 0) {
                 counts[currentShop][id] -= 1;
@@ -431,7 +413,6 @@
             }
         }
 
-        // ฟังก์ชันสรุปบิล
         function showBill() {
             let foodTotal = 0;
             let detailsHTML = '';
@@ -448,15 +429,8 @@
                 }
             });
 
-            // คิด Service Charge เฉพาะร้าน Katsu Midori
-            let serviceCharge = 0;
-            if (currentShop === 'katsu') {
-                serviceCharge = foodTotal * 0.10;
-                document.getElementById('sc-row').style.display = 'flex';
-            } else {
-                document.getElementById('sc-row').style.display = 'none'; // ซ่อนบรรทัด Service Charge
-            }
-            
+            // คิด Service Charge 10% ให้ทั้ง 2 ร้าน
+            let serviceCharge = foodTotal * 0.10;
             let grandTotal = foodTotal + serviceCharge;
             
             document.getElementById('bill-details').innerHTML = detailsHTML;
@@ -479,7 +453,6 @@
             document.getElementById('confirm-modal').style.display = 'none';
         }
 
-        // ฟังก์ชันยืนยันล้างข้อมูล (ล้างเฉพาะร้านที่เลือกอยู่)
         function executeReset() {
             const activeData = currentShop === 'katsu' ? katsuData : sushiroData;
             activeData.forEach(plate => counts[currentShop][plate.id] = 0);
@@ -489,7 +462,6 @@
             closeBill();
         }
 
-        // รันหน้าจอครั้งแรกตอนเปิดแอป
         renderGrid();
     </script>
 </body>
