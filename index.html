@@ -519,7 +519,7 @@
             const btnSave = document.getElementById('btn-save-img');
             
             const originalText = btnSave.innerText;
-            btnSave.innerText = 'กำลังสร้างรูป... ⏳';
+            btnSave.innerText = 'กำลังเตรียมรูป... ⏳';
             btnSave.style.opacity = '0.7';
 
             const originalBoxShadow = receiptBox.style.boxShadow;
@@ -535,16 +535,35 @@
                 btnSave.innerText = originalText;
                 btnSave.style.opacity = '1';
 
-                const link = document.createElement('a');
-                link.download = `Bill_${currentShop}_${new Date().getTime()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                showAlert("เซฟรูปบิลสำเร็จ! เปิดดูในคลังภาพแล้วส่งให้เพื่อนได้เลยครับ 📸", "สำเร็จ!");
+                // แปลงรูปเป็นไฟล์เพื่อเตรียมแชร์
+                canvas.toBlob(function(blob) {
+                    const fileName = `Bill_${currentShop}_${new Date().getTime()}.png`;
+                    const file = new File([blob], fileName, { type: 'image/png' });
+                    
+                    // ตรวจสอบว่ามือถือเครื่องนี้รองรับระบบ Share Sheet ไหม (iOS และ Android ส่วนใหญ่รองรับ)
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file],
+                            title: 'สรุปบิลซูชิ',
+                            text: 'ยอดโอนค่าซูชิมาแล้วจ้า 🍣💸 โอนตามนี้ได้เลยย'
+                        }).catch(err => {
+                            console.log("ยกเลิกการแชร์", err); // ถ้าผู้ใช้กดยกเลิกเมนูแชร์ ไม่ต้องทำอะไร
+                        });
+                    } else {
+                        // ถ้าเปิดในคอมพิวเตอร์ หรือเบราว์เซอร์เก่า ให้ใช้วิธีดาวน์โหลดลงเครื่องแบบเดิม
+                        const link = document.createElement('a');
+                        link.download = fileName;
+                        link.href = URL.createObjectURL(blob);
+                        link.click();
+                        showAlert("ดาวน์โหลดรูปสำเร็จ! (เนื่องจากเบราว์เซอร์ไม่รองรับการแชร์โดยตรง รูปจึงอยู่ในโฟลเดอร์ดาวน์โหลด)", "สำเร็จ!");
+                    }
+                }, 'image/png');
+
             }).catch(err => {
+                receiptBox.style.boxShadow = originalBoxShadow;
                 btnSave.innerText = originalText;
                 btnSave.style.opacity = '1';
-                showAlert("เกิดข้อผิดพลาดในการเซฟรูปครับ ลองใหม่อีกครั้ง", "ผิดพลาด");
+                showAlert("เกิดข้อผิดพลาดในการสร้างรูปครับ ลองใหม่อีกครั้ง", "ผิดพลาด");
             });
         }
 
