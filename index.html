@@ -208,6 +208,11 @@
             <button onclick="saveCurrentGroup()">💾 บันทึกกลุ่มนี้</button>
         </div>
         <div class="sidebar-list" id="saved-groups-list"></div>
+        <div style="padding: 20px; border-top: 1px solid #eee;">
+            <button onclick="factoryReset()" style="width: 100%; padding: 12px; background: #fee; color: #e60012; border: 1px solid #fcc; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                🔄 ล้างข้อมูลทั้งหมด
+            </button>
+        </div>
     </div>
 
     <div class="modal" id="edit-name-modal" style="z-index: 4000;">
@@ -580,6 +585,17 @@
         document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if(e.key === 'Enter') addFriend(); });
         document.getElementById('my-name-input').addEventListener('keypress', function(e) { if(e.key === 'Enter') saveMyName(); });
         document.getElementById('edit-name-input').addEventListener('keypress', function(e) { if(e.key === 'Enter') saveEditedName(); });
+    
+
+        function factoryReset() {
+            showConfirm("ต้องการล้างประวัติทั้งหมด (รวมถึงชื่อของคุณและกลุ่มเพื่อน) เพื่อกลับไปเหมือนเพิ่งเปิดแอปครั้งแรกใช่หรือไม่?", () => {
+                // ล้างข้อมูลในเครื่องทั้งหมด
+                localStorage.removeItem('kaiten_username');
+                localStorage.removeItem('kaiten_groups');
+                // รีเฟรชหน้าเว็บใหม่
+                window.location.reload();
+            }, "รีเซ็ตแอปพลิเคชัน");
+        }
     </script>
 </body>
 </html>
