@@ -615,32 +615,45 @@
         }
 
         function renderFriends() {
-            // (ตรงนี้คือส่วนที่คุณเคลียร์หน้าจอเดิม เช่น .innerHTML = '')
-            const container = document.getElementById('friends-container'); // (ถ้า ID คุณชื่ออื่น ให้ใช้ชื่อเดิมของคุณนะครับ)
-            if(container) container.innerHTML = ''; 
+            // เช็ค ID ของคอนเทนเนอร์ของคุณ (ลองแก้ให้ตรงกับ HTML ของคุณ เช่น person-tabs หรือ friends-container)
+            const container = document.getElementById('person-tabs') || document.getElementById('friends-container'); 
+            if(!container) return;
+            
+            container.innerHTML = ''; 
 
-            // 🚀 1. คัดแยก: หาชื่อ "ตัวเรา" ออกมา และแยก "เพื่อนคนอื่น" ไว้ต่างหาก
+            // 1. คัดแยกและจัดคิว (ตัวเราอยู่ซ้ายสุด)
             const me = people.find(p => p.id === myUserId);
             const others = people.filter(p => p.id !== myUserId);
-            
-            // 🚀 2. จัดคิวใหม่เฉพาะการแสดงผล: เอาเราขึ้นหน้าสุด ตามด้วยเพื่อนคนอื่นๆ (ซึ่งเรียงตามลำดับที่เข้ามาอยู่แล้ว)
             const displayPeople = me ? [me, ...others] : people;
 
-            // 🚀 3. ใช้ displayPeople.forEach แทน people.forEach ของเดิม
+            // 2. เริ่มวาดปุ่มทีละคน
             displayPeople.forEach(p => {
-                
-                // --- ด้านล่างนี้ให้ใส่โค้ดสร้างปุ่มรายชื่อของคุณตามปกติเลยครับ ---
                 const isMe = (p.id === myUserId);
                 const isActive = (p.id === currentPerson);
                 
-                // ตัวอย่างโค้ดสร้างปุ่ม (ปรับให้ตรงกับโครงสร้าง HTML ของคุณ)
-                /* const btn = document.createElement('div');
-                btn.className = `friend-tab ${isActive ? 'active' : ''}`;
+                // สร้างกล่องปุ่มหลัก
+                const btn = document.createElement('div');
+                btn.className = `person-tab ${isActive ? 'active' : ''}`; // ใช้คลาสตามที่คุณเคยตั้งไว้
                 btn.onclick = () => selectPerson(p.id);
-                btn.innerHTML = `<i class="fas fa-user"></i> ${p.name}`;
-                container.appendChild(btn);
-                */
+                
+                // ใส่ไอคอนและชื่อ 
+                const iconColor = '#5a738e'; // สีไอคอนคน
+                btn.innerHTML = `<i class="fas fa-user" style="color: ${iconColor};"></i> <span>${p.name}</span>`;
 
+                // ใส่ปุ่มกากบาทลบเพื่อน (ถ้าคุณมีฟังก์ชันลบชื่อ)
+                const delBtn = document.createElement('span');
+                delBtn.innerHTML = ' &times;'; 
+                delBtn.className = 'delete-btn'; // คลาสสำหรับปุ่มกากบาท
+                delBtn.style.color = '#ff4d4f';
+                delBtn.style.marginLeft = '8px';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation(); // ไม่ให้คลิกทะลุไปเลือกคน
+                    // ลองเช็คว่าฟังก์ชันลบคนของคุณชื่ออะไร ระหว่าง removePerson หรือ deletePerson
+                    if (typeof removePerson === "function") removePerson(p.id);
+                };
+                btn.appendChild(delBtn);
+
+                container.appendChild(btn);
             });
         }
 
