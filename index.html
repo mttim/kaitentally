@@ -698,9 +698,39 @@
             });
         }
 
-        function addPlate(id) { counts[currentShop][currentPerson][id] += 1; document.getElementById('count-' + id).innerText = counts[currentShop][currentPerson][id]; if (navigator.vibrate) navigator.vibrate(40); }
-        function removePlate(id) { if (counts[currentShop][currentPerson][id] > 0) { counts[currentShop][currentPerson][id] -= 1; document.getElementById('count-' + id).innerText = counts[currentShop][currentPerson][id]; if (navigator.vibrate) navigator.vibrate(20); } }
+        function addPlate(id) { 
+            counts[currentShop][currentPerson][id] += 1; 
+            document.getElementById('count-' + id).innerText = counts[currentShop][currentPerson][id]; 
+            
+            if (navigator.vibrate) navigator.vibrate(40); 
+            
+            // เล่นเสียง
+            if (isSoundEnabled) {
+                const sound = document.getElementById('click-sound');
+                if (sound) { sound.currentTime = 0; sound.play().catch(err => {}); }
+            }
 
+            // 🚀 สำคัญ: เซฟและส่งขึ้น Firebase ทันที
+            saveToLocal(); 
+        }
+
+        function removePlate(id) { 
+            if (counts[currentShop][currentPerson][id] > 0) { 
+                counts[currentShop][currentPerson][id] -= 1; 
+                document.getElementById('count-' + id).innerText = counts[currentShop][currentPerson][id]; 
+                
+                if (navigator.vibrate) navigator.vibrate(20); 
+                
+                if (isSoundEnabled) {
+                    const sound = document.getElementById('click-sound');
+                    if (sound) { sound.currentTime = 0; sound.play().catch(err => {}); }
+                }
+
+                // 🚀 สำคัญ: เซฟและส่งขึ้น Firebase ทันที
+                saveToLocal(); 
+            } 
+        }
+        
         // --- ระบบบิล & เซฟรูป ---
         function showBill() {
             let tableGrandTotal = 0; let detailsHTML = ''; const activeData = currentShop === 'katsu' ? katsuData : sushiroData;
@@ -937,36 +967,35 @@
             
             const roomRef = db.ref('rooms/' + roomId);
             
+            // ใช้ .on('value') เพื่อให้แอป "หูทิพย์" ตลอดเวลา
             roomRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data && data.people) {
-                    // --- กรณีมีข้อมูลในห้องอยู่แล้ว ---
-                    console.log("ได้รับข้อมูลจากห้อง:", roomId);
-                    
-                    // 1. อัปเดตรายชื่อเพื่อน (ถ้าไม่เหมือนเดิม)
-                    people = data.people;
-                    
-                    // 2. อัปเดตจำนวนจาน
+                    // 1. ดึงข้อมูลจำนวนจานล่าสุดมาใช้
                     if (data.counts) {
                         counts = data.counts;
                     }
-                    
-                    // 3. เช็คว่าตัวเรา (ID ของเรา) อยู่ในรายชื่อที่ดึงมาไหม
-                    // ถ้าไม่มี (เช่น เราเพิ่งจอยครั้งแรก) ให้เพิ่มตัวเองเข้าไปในรายชื่อของห้องนั้น
-                    const meExists = people.find(p => p.id === myUserId);
-                    if (!meExists) {
-                        const myName = localStorage.getItem('kaiten_username') || "ฉัน";
-                        people.push({ id: myUserId, name: myName });
-                        // ส่งข้อมูลที่มีเราเพิ่มเข้าไปกลับขึ้นไปบน Cloud
-                        roomRef.update({ people: people });
-                    }
 
-                    // วาดหน้าจอใหม่
-                    renderFriends();
-                    renderGrid();
+                    // 2. ตรวจสอบรายชื่อเพื่อน
+                    let remotePeople = data.people;
+                    const meExists = remotePeople.find(p => p.id === myUserId);
+                    
+                    if (!meExists) {
+                        // --- จังหวะที่คนใหม่ (เครื่อง 2) เข้ามาครั้งแรก ---
+                        const myName = localStorage.getItem('kaiten_username') || "ฉัน";
+                        remotePeople.push({ id: myUserId, name: myName });
+                        
+                        // อัปเดตกลับขึ้น Cloud เพื่อให้เครื่อง 1 เห็นเรา
+                        roomRef.update({ people: remotePeople });
+                    } else {
+                        // --- จังหวะปกติที่ข้อมูลใน Cloud เปลี่ยนแปลง ---
+                        people = remotePeople;
+                        renderFriends();
+                        renderGrid();
+                    }
                 } else {
-                    // --- กรณีห้องยังว่าง (เราเป็นคนแรก) ---
+                    // กรณีเป็นคนแรกที่สร้างห้อง (ยังไม่มีข้อมูลใน Cloud)
                     saveToLocal(); 
                 }
             });
