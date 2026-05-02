@@ -615,12 +615,27 @@
         }
 
         function renderFriends() {
-            const container = document.getElementById('friends-list'); container.innerHTML = '';
-            people.forEach(person => {
+            const container = document.getElementById('friends-list'); 
+            container.innerHTML = '';
+
+            // 1. คัดแยก: หา "ตัวเรา" และ "คนอื่น" แยกออกจากกัน
+            const me = people.find(p => p.id === myUserId);
+            const others = people.filter(p => p.id !== myUserId);
+
+            // 2. จัดลำดับใหม่: เอา "ตัวเรา" วางหน้าสุด ตามด้วย "คนอื่น"
+            // (ถ้าหาตัวเราไม่เจอ ให้ใช้รายชื่อเดิมเพื่อกัน Error)
+            const displayPeople = me ? [me, ...others] : people;
+
+            // 3. วนลูปวาดหน้าจอจากรายชื่อที่จัดลำดับใหม่ (displayPeople)
+            displayPeople.forEach(person => {
                 const isActive = person.id === currentPerson ? 'active' : '';
                 container.innerHTML += `<div class="friend-pill ${isActive}" onclick="selectPerson('${person.id}')">👤 ${person.name} <button class="delete-friend-btn" onclick="removeFriend('${person.id}', '${person.name}', event)">✕</button></div>`;
             });
-            container.scrollLeft = container.scrollWidth;
+
+            // 4. การเลื่อน Scroll: 
+            // ถ้าอยากให้เห็นชื่อตัวเอง (ซึ่งอยู่ซ้ายสุด) ทันที ให้เปลี่ยนเป็น container.scrollLeft = 0;
+            // แต่ถ้าอยากให้เลื่อนไปขวาสุดเหมือนเดิมให้คงค่าไว้ครับ
+            container.scrollLeft = 0; 
         }
 
         // --- ระบบ Sidebar ---
