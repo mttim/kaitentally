@@ -530,7 +530,6 @@
             
             localStorage.setItem('kaiten_username', inputName);
             
-            // อัปเดตชื่อในรายการคน
             const me = people.find(p => p.id === myUserId);
             if (me) {
                 me.name = inputName;
@@ -542,10 +541,9 @@
             updateSidebarNameDisplay();
             renderFriends();
             saveToLocal(); 
+            
+            // ปิดหน้าต่างจบเลย ไม่ต้องมีคำสั่งอะไรต่อ
             closeModalUI('welcome-modal');
-
-            // 🚀 แก้บั๊กหน้าจอเลื่อนค้างบน iOS หลังจากคีย์บอร์ดหดลง
-            setTimeout(() => { window.scrollTo(0, 0); }, 100);
         }
 
         function openEditNameModal() {
@@ -1029,11 +1027,9 @@
             
             startFirebaseListener();
             updateRoomUI();
+            
+            // ปิดหน้าต่างจบเลย ให้ผู้ใช้เห็นชื่อเพื่อนเด้งขึ้นมาก็ถือเป็นการรับรู้แล้วว่าสำเร็จ
             closeModalUI('join-room-modal');
-            showAlert(`เข้าร่วมห้อง ${roomId} เรียบร้อยแล้ว!\nกำลังซิงค์ข้อมูลกับเพื่อน...`, "สำเร็จ");
-
-            // 🚀 แก้บั๊กหน้าจอเลื่อนค้างบน iOS 
-            setTimeout(() => { window.scrollTo(0, 0); }, 100);
         }
 
         function leaveRoom() {
