@@ -808,17 +808,20 @@
             });
         }
 
-        // เริ่มต้นการทำงาน 
-        updateRoomUI();
-        initPersonData(currentPerson);
+        // --- เริ่มต้นการทำงาน (Initial Load) ---
+        updateRoomUI(); 
+        initPersonData(myUserId);
         renderFriends(); 
         switchTab(currentShop);
         updateSidebarNameDisplay();
         
-        if (!savedUsername) {
+        // ✨ จุดที่ต้องแก้: ถ้าไม่มีชื่อ หรือ (มีไอดีเครื่องแต่ชื่อในระบบยังเป็น 'ฉัน') ให้เปิดหน้าต่างใส่ชื่อ
+        const currentMe = people.find(p => p.id === myUserId);
+        if (!localStorage.getItem('kaiten_username') || (currentMe && currentMe.name === 'ฉัน')) {
             openModalUI('welcome-modal');
         }
 
+        // ถ้ามีรหัสห้องค้างอยู่ ให้เริ่มซิงค์ทันที
         if (roomId) {
             startFirebaseListener();
         }
@@ -1003,27 +1006,17 @@
         }
 
         function leaveRoom() {
-            showConfirm("ต้องการออกจากห้องปัจจุบันใช่หรือไม่?\n(เมื่อออกแล้ว จานที่ทุกคนเลือกไว้จะถูกล้าง และเหลือแค่คุณคนเดียว)", () => {
-                // 1. ล้างรหัสห้อง
-                roomId = null;
+            showConfirm("ต้องการออกจากห้องปัจจุบันใช่หรือไม่?", () => {
+                // ลบข้อมูลเฉพาะส่วนของห้อง
                 localStorage.removeItem('kaiten_room_id');
-                
-                // 2. ล้างชื่อเพื่อนออกให้หมด เหลือแค่ 'ฉัน'
-                const me = people.find(p => p.id === 'p_me') || people[0];
-                people = [me];
-                currentPerson = me.id;
-                
-                // 3. ล้างจานทั้งหมดเป็น 0
-                counts = { katsu: {}, sushiro: {} };
-                initPersonData(me.id);
-                
-                // 4. บันทึกและวาดหน้าจอใหม่
-                saveToLocal();
-                renderFriends();
-                renderGrid();
-                updateRoomUI();
-                
-                showAlert("ออกจากห้องและล้างข้อมูลจานเรียบร้อยแล้วค่ะ", "ออกจากห้อง");
+                localStorage.removeItem('kaiten_people');
+                localStorage.removeItem('kaiten_counts');
+                localStorage.removeItem('kaiten_current_person');
+
+                // ⚠️ ถ้าอยากให้เขาใส่ชื่อใหม่ด้วยตอนเข้าห้องหน้า ให้ลบบรรทัดนี้เพิ่ม:
+                // localStorage.removeItem('kaiten_username'); 
+
+                window.location.reload(); // รีเฟรชเพื่อกลับไปสถานะเริ่มต้น
             });
         }
 
