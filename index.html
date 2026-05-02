@@ -1061,11 +1061,16 @@
         function confirmJoinRoom() {
             const inputElement = document.getElementById('join-room-input');
             const input = inputElement.value.trim();
-            inputElement.blur();
-
+            
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
 
-            // ปิดการเชื่อมต่อเก่าทันที
+            // 1. สั่งปิดคีย์บอร์ดทันที
+            inputElement.blur();
+            
+            // 2. 🚀 ท่าไม้ตายกระชากหน้าจอ
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+
             if (currentRoomRef) {
                 currentRoomRef.off();
                 currentRoomRef = null;
@@ -1075,7 +1080,7 @@
             localStorage.setItem('kaiten_room_id', roomId);
             counts = { katsu: {}, sushiro: {} };
             
-            startFirebaseListener(); // เริ่มดักฟังห้องใหม่ ข้อมูลจะมาวาดหน้าจอเองอัตโนมัติ
+            startFirebaseListener();
             closeModalUI('join-room-modal');
         }
 
