@@ -521,7 +521,7 @@
         }
 
         function updateSidebarNameDisplay() {
-            let name = localStorage.getItem('kaiten_username') || 'ฉัน';
+            let name = localStorage.getItem('kaiten_username') || '-';
             document.getElementById('display-my-name').innerText = name;
         }
 
@@ -985,14 +985,23 @@
         }
 
         function updateRoomUI() {
-            const display = document.getElementById('current-room-display');
-            const btnLeave = document.getElementById('btn-leave-room');
+            const createBtn = document.getElementById('btn-create-room');
+            const joinBtn = document.getElementById('btn-join-room');
+            const leaveBtn = document.getElementById('btn-leave-room');
+            const roomInfo = document.getElementById('room-info-display');
+
             if (roomId) {
-                display.innerHTML = `รหัสโต๊ะปัจจุบัน: <strong style="color: var(--brand-color); font-size: 18px; letter-spacing: 2px;">${roomId}</strong>`;
-                btnLeave.style.display = 'block';
+                // อยู่ในห้อง: โชว์ข้อมูลห้องและปุ่มออก
+                if(createBtn) createBtn.style.display = 'none';
+                if(joinBtn) joinBtn.style.display = 'none';
+                if(leaveBtn) leaveBtn.style.display = 'block';
+                if(roomInfo) roomInfo.innerHTML = `<span><i class="fas fa-users"></i> รหัสห้อง: <b>${roomId}</b></span>`;
             } else {
-                display.innerHTML = `สถานะ: <span style="color: #888;">ใช้งานคนเดียว</span>`;
-                btnLeave.style.display = 'none';
+                // ไม่มีห้อง: โชว์ปุ่มสร้าง/จอย
+                if(createBtn) createBtn.style.display = 'block';
+                if(joinBtn) joinBtn.style.display = 'block';
+                if(leaveBtn) leaveBtn.style.display = 'none';
+                if(roomInfo) roomInfo.innerHTML = '';
             }
         }
 
