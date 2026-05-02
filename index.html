@@ -388,6 +388,7 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.database();
+        let currentRoomRef = null; // <--- 🚀 เพิ่มบรรทัดนี้ เพื่อเก็บค่าหูทิพย์
 
         // --- ระบบเปิด/ปิดเสียง (ดีไซน์มินิมอล + จำค่าได้) ---
         // 1. โหลดค่าเดิมจากเครื่อง (ถ้าไม่เคยตั้งค่ามาก่อน ให้เริ่มต้นที่ true คือเปิดเสียง)
@@ -964,58 +965,53 @@
         function startFirebaseListener() {
             if (!roomId || typeof db === 'undefined') return;
             
-            const roomRef = db.ref('rooms/' + roomId);
+            // 🚀 ปิดหูทิพย์ของห้องเก่าก่อน (ถ้ามี) เพื่อไม่ให้ข้อมูลตีกัน
+            if (currentRoomRef) {
+                currentRoomRef.off();
+            }
             
-            roomRef.on('value', (snapshot) => {
+            currentRoomRef = db.ref('rooms/' + roomId);
+            
+            currentRoomRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data && data.people) {
                     let remotePeople = data.people;
-                    let needsSync = false; // ตัวแปรคอยเช็คว่าต้องส่งข้อมูลกลับขึ้น Cloud ไหม
+                    let needsSync = false;
                     
-                    // 1. ดึงจำนวนจานจาก Cloud
-                    if (data.counts) {
-                        counts = data.counts;
-                    }
+                    if (data.counts) { counts = data.counts; }
 
-                    // 2. เช็คว่ามี "เรา" ในห้องนี้หรือยัง?
+                    // กรองเผื่อมีค่าว่าง (null) หลุดมาจากความเอ๋อของ Firebase
+                    remotePeople = remotePeople.filter(p => p !== null);
+
                     const meExists = remotePeople.find(p => p.id === myUserId);
                     if (!meExists) {
-                        // ถ้ายังไม่มี ให้เอาชื่อเรายัดใส่กลุ่ม
                         const myName = localStorage.getItem('kaiten_username') || "ฉัน";
                         remotePeople.push({ id: myUserId, name: myName });
-                        needsSync = true; // สั่งให้เตรียมอัปเดตกลับไปบอกเพื่อน
+                        needsSync = true;
                     }
                     
                     people = remotePeople;
 
-                    // 3. ป้องกันแอปค้าง: ถ้าคนที่เลือกอยู่ (แท็บชื่อ) ไม่มีในห้องนี้แล้ว ให้เด้งกลับมาที่ชื่อตัวเอง
                     if (!people.find(p => p.id === currentPerson)) {
                         currentPerson = myUserId;
                     }
 
-                    // 4. 🚀 จุดแก้บั๊กจานหาย: เช็คว่าทุกคนในห้อง มีตะกร้าจาน (ค่า 0) หรือยัง
                     people.forEach(p => {
-                        // ถ้าใครยังไม่มีตะกร้าของตัวเอง ให้รันฟังก์ชันเตรียมจานให้
                         if (!counts.katsu[p.id] || !counts.sushiro[p.id]) {
                             initPersonData(p.id);
-                            needsSync = true; // มีคนได้ตะกร้าใหม่ ต้องส่งไปบอกเพื่อนด้วย
+                            needsSync = true;
                         }
                     });
 
-                    // 5. วาดหน้าจอใหม่
                     renderFriends();
                     renderGrid();
+                    updateRoomUI();
 
-                    // 6. ถ้ามีคนเข้าใหม่ หรือมีการสร้างตะกร้าจานใหม่ ให้ดันข้อมูลที่สมบูรณ์กลับขึ้น Cloud
                     if (needsSync) {
-                        roomRef.set({
-                            people: people,
-                            counts: counts
-                        });
+                        currentRoomRef.set({ people: people, counts: counts });
                     }
                 } else {
-                    // ถ้าห้องว่างเปล่า (เพิ่งสร้างใหม่ๆ) ให้ส่งข้อมูลต้นฉบับของเราขึ้นไป
                     saveToLocal(); 
                 }
             });
@@ -1036,51 +1032,61 @@
         }
 
         function confirmJoinRoom() {
-            const input = document.getElementById('join-room-input').value.trim();
+            const inputElement = document.getElementById('join-room-input');
+            const input = inputElement.value.trim();
+            inputElement.blur();
+
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
-            
+
+            // ปิดการเชื่อมต่อเก่าทันที
+            if (currentRoomRef) {
+                currentRoomRef.off();
+                currentRoomRef = null;
+            }
+
             roomId = input;
             localStorage.setItem('kaiten_room_id', roomId);
-            
             counts = { katsu: {}, sushiro: {} };
             
-            startFirebaseListener();
-            updateRoomUI();
-            
-            // ปิดหน้าต่างจบเลย ให้ผู้ใช้เห็นชื่อเพื่อนเด้งขึ้นมาก็ถือเป็นการรับรู้แล้วว่าสำเร็จ
+            startFirebaseListener(); // เริ่มดักฟังห้องใหม่ ข้อมูลจะมาวาดหน้าจอเองอัตโนมัติ
             closeModalUI('join-room-modal');
         }
 
         function leaveRoom() {
             showConfirm("ต้องการออกจากห้องปัจจุบันใช่หรือไม่?\n(เมื่อออกแล้ว จานที่ทุกคนเลือกไว้จะถูกล้าง และเหลือแค่คุณคนเดียว)", () => {
                 
-                // 1. 🚀 ตะโกนบอก Firebase ให้ลบชื่อเราออกจากกลุ่มก่อน!
+                // 1. 🚀 ปิดหูทิพย์ทันที! เพื่อไม่ให้ข้อมูลของห้องเก่าย้อนกลับมาตอนเราล้างหน้าจอ
+                if (currentRoomRef) {
+                    currentRoomRef.off();
+                    currentRoomRef = null;
+                }
+
+                // 2. ตะโกนบอก Firebase ให้ลบชื่อเราออก (ใช้ .set แทน .update แก้บั๊ก Firebase Array)
                 if (roomId && typeof db !== 'undefined') {
                     const roomRef = db.ref('rooms/' + roomId);
                     roomRef.once('value').then((snapshot) => {
                         const data = snapshot.val();
                         if (data && data.people) {
-                            // คัดกรองเอาชื่อ "ทุกคนที่ยกเว้นเรา" แล้วส่งกลับไปเซฟทับ
-                            const updatedPeople = data.people.filter(p => p.id !== myUserId);
-                            roomRef.update({ people: updatedPeople });
+                            const updatedPeople = data.people.filter(p => p && p.id !== myUserId);
+                            roomRef.child('people').set(updatedPeople);
                         }
                     });
                 }
 
-                // 2. ล้างข้อมูลของห้องเก่าในเครื่องเรา
+                // 3. ล้างข้อมูลห้องในเครื่องเรา
                 roomId = null;
                 localStorage.removeItem('kaiten_room_id');
                 
-                // 3. รีเซ็ตเพื่อนให้เหลือแค่ 'ฉัน' คนเดียว
+                // 4. รีเซ็ตเพื่อนให้เหลือแค่เรา
                 const me = people.find(p => p.id === myUserId) || people[0];
                 people = [me];
                 currentPerson = me.id;
                 
-                // 4. ล้างจานทั้งหมดเป็น 0
+                // 5. ล้างจานทั้งหมดเป็น 0
                 counts = { katsu: {}, sushiro: {} };
                 initPersonData(me.id);
                 
-                // 5. บันทึกและวาดหน้าจอใหม่
+                // 6. วาดหน้าจอใหม่ทันที (โดยไม่ต้องรีเฟรชหน้าเว็บ)
                 saveToLocal();
                 renderFriends();
                 renderGrid();
