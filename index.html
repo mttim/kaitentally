@@ -528,11 +528,17 @@
         function saveMyName() {
             const inputElement = document.getElementById('my-name-input');
             const inputName = inputElement.value.trim();
-            
-            inputElement.blur(); // เอาเคอร์เซอร์ออกเพื่อบังคับคีย์บอร์ดปิด
 
             if(inputName === '') { showAlert("กรุณาพิมพ์ชื่อของคุณก่อนนะคะ", "ลืมใส่ชื่อ!"); return; }
+
+            // 1. สั่งปิดคีย์บอร์ดทันที
+            inputElement.blur();
             
+            // 2. 🚀 ท่าไม้ตายปราบ iOS Safari: กระชากหน้าจอกลับมาให้ปกติก่อนทำอย่างอื่น
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+
+            // 3. เซฟข้อมูลตามปกติ
             localStorage.setItem('kaiten_username', inputName);
             
             const me = people.find(p => p.id === myUserId);
@@ -545,10 +551,9 @@
 
             updateSidebarNameDisplay();
             renderFriends();
-            closeModalUI('welcome-modal');
-            
-            // เซฟลงเครื่อง (ถ้าเพิ่งเปิดแอป จะยังไม่ส่งขึ้นเน็ตจนกว่าจะกดเข้าห้อง)
             saveToLocal();
+            
+            closeModalUI('welcome-modal');
         }
 
         function openEditNameModal() {
@@ -626,15 +631,16 @@
         }
 
         function saveCurrentGroup() {
-            const input = document.getElementById('save-group-name'); const groupName = input.value.trim();
+            const input = document.getElementById('save-group-name'); 
+            const groupName = input.value.trim();
             if(!groupName) { showAlert("กรุณาพิมพ์ชื่อกลุ่มก่อนบันทึกค่ะ"); return; }
             
-            // ถ้ายืนยันจะเซฟกลุ่ม แต่ยังไม่มีรหัสห้อง ให้สร้างรหัสให้เลยอัตโนมัติ
+            // ถ้ายังไม่มีรหัสห้อง ให้สร้างให้เลยอัตโนมัติ เพื่อเตรียมพร้อมออนไลน์
             if (!roomId) {
                 roomId = Math.floor(1000 + Math.random() * 9000).toString();
                 localStorage.setItem('kaiten_room_id', roomId);
                 
-                // 🚀 เซฟห้องและเปิดหูทิพย์ทันทีเหมือนตอนสร้างห้อง
+                // จองโต๊ะบน Firebase และเปิดหูทิพย์ทันที
                 saveToLocal();
                 startFirebaseListener();
                 updateRoomUI();
@@ -642,14 +648,16 @@
 
             let savedGroups = JSON.parse(localStorage.getItem('kaiten_groups') || '{}');
             
+            // เซฟทั้งรายชื่อ และรหัสห้อง
             savedGroups[groupName] = {
                 roomId: roomId,
                 people: people.map(p => ({ id: p.id, name: p.name }))
             };
             
             localStorage.setItem('kaiten_groups', JSON.stringify(savedGroups));
-            input.value = ''; renderSavedGroups(); 
-            showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้ว!\n(รหัสห้องสำหรับกลุ่มนี้คือ: ${roomId})`, "สำเร็จ");
+            input.value = ''; 
+            renderSavedGroups(); 
+            showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้ว!\n(รหัสห้องคือ: ${roomId})`, "สำเร็จ");
         }
 
         function renderSavedGroups() {
