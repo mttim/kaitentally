@@ -630,12 +630,15 @@
             if (!roomId) {
                 roomId = Math.floor(1000 + Math.random() * 9000).toString();
                 localStorage.setItem('kaiten_room_id', roomId);
+                
+                // 🚀 เซฟห้องและเปิดหูทิพย์ทันทีเหมือนตอนสร้างห้อง
+                saveToLocal();
+                startFirebaseListener();
                 updateRoomUI();
             }
 
             let savedGroups = JSON.parse(localStorage.getItem('kaiten_groups') || '{}');
             
-            // เซฟแบบใหม่: เก็บทั้งรายชื่อ และ รหัสห้อง
             savedGroups[groupName] = {
                 roomId: roomId,
                 people: people.map(p => ({ id: p.id, name: p.name }))
@@ -1019,8 +1022,16 @@
 
         function createRoom() {
             if (roomId) { showAlert("คุณอยู่ในห้องอยู่แล้วค่ะ กดออกจากห้องก่อนเพื่อสร้างใหม่นะคะ"); return; }
+            
             roomId = Math.floor(1000 + Math.random() * 9000).toString();
             localStorage.setItem('kaiten_room_id', roomId);
+            
+            // 🚀 หัวใจสำคัญ 1: ส่งข้อมูลของเราขึ้นไป "จองโต๊ะ" บน Firebase ทันที!
+            saveToLocal();
+            
+            // 🚀 หัวใจสำคัญ 2: เปิดหูทิพย์รอฟังข้อมูลเพื่อนทันที ไม่ต้องรอรีเฟรช!
+            startFirebaseListener();
+            
             updateRoomUI();
             showAlert(`รหัสห้องของคุณคือ:\n\n⭐ [ ${roomId} ] ⭐\n\nบอกรหัสนี้ให้เพื่อนกดเข้าร่วมได้เลยค่ะ`, "✨ สร้างกลุ่มสำเร็จ!");
         }
