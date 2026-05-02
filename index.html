@@ -615,12 +615,33 @@
         }
 
         function renderFriends() {
-            const container = document.getElementById('friends-list'); container.innerHTML = '';
-            people.forEach(person => {
-                const isActive = person.id === currentPerson ? 'active' : '';
-                container.innerHTML += `<div class="friend-pill ${isActive}" onclick="selectPerson('${person.id}')">👤 ${person.name} <button class="delete-friend-btn" onclick="removeFriend('${person.id}', '${person.name}', event)">✕</button></div>`;
+            // (ตรงนี้คือส่วนที่คุณเคลียร์หน้าจอเดิม เช่น .innerHTML = '')
+            const container = document.getElementById('friends-container'); // (ถ้า ID คุณชื่ออื่น ให้ใช้ชื่อเดิมของคุณนะครับ)
+            if(container) container.innerHTML = ''; 
+
+            // 🚀 1. คัดแยก: หาชื่อ "ตัวเรา" ออกมา และแยก "เพื่อนคนอื่น" ไว้ต่างหาก
+            const me = people.find(p => p.id === myUserId);
+            const others = people.filter(p => p.id !== myUserId);
+            
+            // 🚀 2. จัดคิวใหม่เฉพาะการแสดงผล: เอาเราขึ้นหน้าสุด ตามด้วยเพื่อนคนอื่นๆ (ซึ่งเรียงตามลำดับที่เข้ามาอยู่แล้ว)
+            const displayPeople = me ? [me, ...others] : people;
+
+            // 🚀 3. ใช้ displayPeople.forEach แทน people.forEach ของเดิม
+            displayPeople.forEach(p => {
+                
+                // --- ด้านล่างนี้ให้ใส่โค้ดสร้างปุ่มรายชื่อของคุณตามปกติเลยครับ ---
+                const isMe = (p.id === myUserId);
+                const isActive = (p.id === currentPerson);
+                
+                // ตัวอย่างโค้ดสร้างปุ่ม (ปรับให้ตรงกับโครงสร้าง HTML ของคุณ)
+                /* const btn = document.createElement('div');
+                btn.className = `friend-tab ${isActive ? 'active' : ''}`;
+                btn.onclick = () => selectPerson(p.id);
+                btn.innerHTML = `<i class="fas fa-user"></i> ${p.name}`;
+                container.appendChild(btn);
+                */
+
             });
-            container.scrollLeft = container.scrollWidth;
         }
 
         // --- ระบบ Sidebar ---
