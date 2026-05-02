@@ -535,14 +535,17 @@
             if (me) {
                 me.name = inputName;
             } else {
-                people[0].name = inputName; // กันเหนียวสำหรับครั้งแรก
+                people[0].name = inputName; 
                 people[0].id = myUserId;
             }
 
             updateSidebarNameDisplay();
             renderFriends();
-            saveToLocal(); // ส่งขึ้น Firebase ทันทีชื่อเพื่อนคนอื่นจะได้เปลี่ยนตาม
+            saveToLocal(); 
             closeModalUI('welcome-modal');
+
+            // 🚀 แก้บั๊กหน้าจอเลื่อนค้างบน iOS หลังจากคีย์บอร์ดหดลง
+            setTimeout(() => { window.scrollTo(0, 0); }, 100);
         }
 
         function openEditNameModal() {
@@ -730,7 +733,7 @@
                 saveToLocal(); 
             } 
         }
-        
+
         // --- ระบบบิล & เซฟรูป ---
         function showBill() {
             let tableGrandTotal = 0; let detailsHTML = ''; const activeData = currentShop === 'katsu' ? katsuData : sushiroData;
@@ -1019,19 +1022,18 @@
             const input = document.getElementById('join-room-input').value.trim();
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
             
-            // 1. บันทึกรหัสห้อง
             roomId = input;
             localStorage.setItem('kaiten_room_id', roomId);
             
-            // 2. ล้างข้อมูลจานในเครื่องชั่วคราว เพื่อรอซิงค์จาก Cloud
             counts = { katsu: {}, sushiro: {} };
             
-            // 3. เริ่มระบบดักฟังข้อมูล (จะไปรัน startFirebaseListener ที่เราแก้ข้างบน)
             startFirebaseListener();
-            
             updateRoomUI();
             closeModalUI('join-room-modal');
             showAlert(`เข้าร่วมห้อง ${roomId} เรียบร้อยแล้ว!\nกำลังซิงค์ข้อมูลกับเพื่อน...`, "สำเร็จ");
+
+            // 🚀 แก้บั๊กหน้าจอเลื่อนค้างบน iOS 
+            setTimeout(() => { window.scrollTo(0, 0); }, 100);
         }
 
         function leaveRoom() {
