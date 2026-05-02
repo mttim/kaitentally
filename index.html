@@ -1074,13 +1074,8 @@
         }
 
         function confirmJoinRoom() {
-            const inputElement = document.getElementById('join-room-input');
-            const input = inputElement.value.trim();
-            
+            const input = document.getElementById('join-room-input').value.trim();
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
-
-            // 1. สั่งเอาเคอร์เซอร์ออก (คีย์บอร์ดเริ่มหดลง)
-            inputElement.blur();
 
             if (currentRoomRef) {
                 currentRoomRef.off();
@@ -1094,12 +1089,8 @@
             startFirebaseListener();
             updateRoomUI();
 
-            // 2. 🚀 ปราบ iOS: หน่วงเวลา 300ms รอคีย์บอร์ดลงสุด แล้วดึงจอกลับ
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                closeModalUI('join-room-modal');
-            }, 300);
+            // ปิดหน้าต่างอย่างเดียวจบ ให้แอนิเมชันของ iOS จัดการตัวเอง
+            closeModalUI('join-room-modal');
         }
 
         function leaveRoom() {
