@@ -615,46 +615,12 @@
         }
 
         function renderFriends() {
-            // เช็ค ID ของคอนเทนเนอร์ของคุณ (ลองแก้ให้ตรงกับ HTML ของคุณ เช่น person-tabs หรือ friends-container)
-            const container = document.getElementById('person-tabs') || document.getElementById('friends-container'); 
-            if(!container) return;
-            
-            container.innerHTML = ''; 
-
-            // 1. คัดแยกและจัดคิว (ตัวเราอยู่ซ้ายสุด)
-            const me = people.find(p => p.id === myUserId);
-            const others = people.filter(p => p.id !== myUserId);
-            const displayPeople = me ? [me, ...others] : people;
-
-            // 2. เริ่มวาดปุ่มทีละคน
-            displayPeople.forEach(p => {
-                const isMe = (p.id === myUserId);
-                const isActive = (p.id === currentPerson);
-                
-                // สร้างกล่องปุ่มหลัก
-                const btn = document.createElement('div');
-                btn.className = `person-tab ${isActive ? 'active' : ''}`; // ใช้คลาสตามที่คุณเคยตั้งไว้
-                btn.onclick = () => selectPerson(p.id);
-                
-                // ใส่ไอคอนและชื่อ 
-                const iconColor = '#5a738e'; // สีไอคอนคน
-                btn.innerHTML = `<i class="fas fa-user" style="color: ${iconColor};"></i> <span>${p.name}</span>`;
-
-                // ใส่ปุ่มกากบาทลบเพื่อน (ถ้าคุณมีฟังก์ชันลบชื่อ)
-                const delBtn = document.createElement('span');
-                delBtn.innerHTML = ' &times;'; 
-                delBtn.className = 'delete-btn'; // คลาสสำหรับปุ่มกากบาท
-                delBtn.style.color = '#ff4d4f';
-                delBtn.style.marginLeft = '8px';
-                delBtn.onclick = (e) => {
-                    e.stopPropagation(); // ไม่ให้คลิกทะลุไปเลือกคน
-                    // ลองเช็คว่าฟังก์ชันลบคนของคุณชื่ออะไร ระหว่าง removePerson หรือ deletePerson
-                    if (typeof removePerson === "function") removePerson(p.id);
-                };
-                btn.appendChild(delBtn);
-
-                container.appendChild(btn);
+            const container = document.getElementById('friends-list'); container.innerHTML = '';
+            people.forEach(person => {
+                const isActive = person.id === currentPerson ? 'active' : '';
+                container.innerHTML += `<div class="friend-pill ${isActive}" onclick="selectPerson('${person.id}')">👤 ${person.name} <button class="delete-friend-btn" onclick="removeFriend('${person.id}', '${person.name}', event)">✕</button></div>`;
             });
+            container.scrollLeft = container.scrollWidth;
         }
 
         // --- ระบบ Sidebar ---
@@ -1098,12 +1064,8 @@
             
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
 
-            // 1. สั่งปิดคีย์บอร์ดทันที
+            // 1. สั่งเอาเคอร์เซอร์ออก (คีย์บอร์ดเริ่มหดลง)
             inputElement.blur();
-            
-            // 2. 🚀 ท่าไม้ตายกระชากหน้าจอ
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
 
             if (currentRoomRef) {
                 currentRoomRef.off();
@@ -1115,7 +1077,14 @@
             counts = { katsu: {}, sushiro: {} };
             
             startFirebaseListener();
-            closeModalUI('join-room-modal');
+            updateRoomUI();
+
+            // 2. 🚀 ปราบ iOS: หน่วงเวลา 300ms รอคีย์บอร์ดลงสุด แล้วดึงจอกลับ
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                closeModalUI('join-room-modal');
+            }, 300);
         }
 
         function leaveRoom() {
