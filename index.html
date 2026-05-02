@@ -464,21 +464,24 @@
             { id: 's100', price: 100, name: 'จานดำ', color: '#1a1a1a', textColor: 'white', border: 'border: 3px solid #444;' }
         ];
 
-        // สร้าง ID ประจำเครื่องถ้ายังไม่มี
+        
+
+        // --- ระบบโปรไฟล์ผู้ใช้ ---
+        let savedShop = localStorage.getItem('kaiten_active_shop');
+        let currentShop = savedShop || 'katsu'; 
+        // 1. ดึงชื่อที่เคยเซฟไว้ (ถ้าไม่มีให้ใช้ "ฉัน")
+        let savedUsername = localStorage.getItem('kaiten_username') || 'ฉัน';
+        
+        // 2. ดึงไอดีเครื่อง (myUserId ที่เราเพิ่งสร้างไป)
         let myUserId = localStorage.getItem('kaiten_my_id');
         if (!myUserId) {
             myUserId = 'p_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('kaiten_my_id', myUserId);
         }
 
-        // --- ระบบโปรไฟล์ผู้ใช้ ---
-        let savedShop = localStorage.getItem('kaiten_active_shop');
-        let currentShop = savedShop || 'katsu'; 
-        let savedUsername = localStorage.getItem('kaiten_username');
-        
-        // 1. เพิ่มการโหลดรายชื่อเพื่อนจากเครื่อง
+        // 3. ตั้งค่ารายชื่อเพื่อนเริ่มต้น โดยใช้ชื่อจริงของเราจากข้อ 1
         let savedPeople = localStorage.getItem('kaiten_people');
-        let people = savedPeople ? JSON.parse(savedPeople) : [{ id: 'p_me', name: savedUsername || 'ฉัน' }]; 
+        let people = savedPeople ? JSON.parse(savedPeople) : [{ id: myUserId, name: savedUsername }]; 
         
         // 2. เพิ่มการจำว่าล่าสุดกำลังจิ้มจานให้ใครอยู่
         let savedPerson = localStorage.getItem('kaiten_current_person');
