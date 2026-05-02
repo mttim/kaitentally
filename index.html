@@ -527,10 +527,21 @@
         function saveMyName() {
             const inputName = document.getElementById('my-name-input').value.trim();
             if(inputName === '') { showAlert("กรุณาพิมพ์ชื่อของคุณก่อนนะคะ", "ลืมใส่ชื่อ!"); return; }
+            
             localStorage.setItem('kaiten_username', inputName);
-            people[0].name = inputName; 
+            
+            // อัปเดตชื่อในรายการคน
+            const me = people.find(p => p.id === myUserId);
+            if (me) {
+                me.name = inputName;
+            } else {
+                people[0].name = inputName; // กันเหนียวสำหรับครั้งแรก
+                people[0].id = myUserId;
+            }
+
             updateSidebarNameDisplay();
             renderFriends();
+            saveToLocal(); // ส่งขึ้น Firebase ทันทีชื่อเพื่อนคนอื่นจะได้เปลี่ยนตาม
             closeModalUI('welcome-modal');
         }
 
