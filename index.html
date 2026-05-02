@@ -864,13 +864,8 @@
 
         function factoryReset() {
             showConfirm("ต้องการล้างประวัติทั้งหมด (รวมถึงชื่อของคุณและกลุ่มเพื่อน) เพื่อกลับไปเหมือนเพิ่งเปิดแอปครั้งแรกใช่หรือไม่?", () => {
-                // ล้างข้อมูลแอป Kaiten ในเครื่องทั้งหมด
-                localStorage.removeItem('kaiten_username');
-                localStorage.removeItem('kaiten_groups');
-                localStorage.removeItem('kaiten_people');         // <--- ลบรายชื่อเพื่อนทั้งหมด
-                localStorage.removeItem('kaiten_current_person'); // <--- ลบคนที่กำลังเลือกค้างไว้
-                localStorage.removeItem('kaiten_counts');         // <--- ลบจำนวนจานทั้งหมด
-                localStorage.removeItem('kaiten_active_shop');    // <--- ลบแท็บร้านที่เปิดค้างไว้
+                // 🚀 ท่าไม้ตาย: ล้างข้อมูลทุกอย่างของแอปในเครื่องให้เกลี้ยง 100%
+                localStorage.clear();
                 
                 // รีเฟรชหน้าเว็บใหม่
                 window.location.reload();
