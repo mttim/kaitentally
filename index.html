@@ -526,7 +526,11 @@
         }
 
         function saveMyName() {
-            const inputName = document.getElementById('my-name-input').value.trim();
+            const inputElement = document.getElementById('my-name-input');
+            const inputName = inputElement.value.trim();
+            
+            inputElement.blur(); // เอาเคอร์เซอร์ออกเพื่อบังคับคีย์บอร์ดปิด
+
             if(inputName === '') { showAlert("กรุณาพิมพ์ชื่อของคุณก่อนนะคะ", "ลืมใส่ชื่อ!"); return; }
             
             localStorage.setItem('kaiten_username', inputName);
@@ -539,15 +543,12 @@
                 people[0].id = myUserId;
             }
 
-            // จัดการ UI แบบออฟไลน์ (คลีนๆ)
             updateSidebarNameDisplay();
             renderFriends();
             closeModalUI('welcome-modal');
-
-            // 🚀 แก้บั๊กหน้าค้าง: รอให้หน้าต่างปิดสนิทก่อน (หน่วงเวลา 0.4 วิ) แล้วค่อยแอบเซฟขึ้น Firebase
-            setTimeout(() => {
-                saveToLocal();
-            }, 400);
+            
+            // เซฟลงเครื่อง (ถ้าเพิ่งเปิดแอป จะยังไม่ส่งขึ้นเน็ตจนกว่าจะกดเข้าห้อง)
+            saveToLocal();
         }
 
         function openEditNameModal() {
@@ -601,7 +602,9 @@
 
         function selectPerson(id) { 
             currentPerson = id; 
-            saveToLocal(); // <--- เซฟตอนเปลี่ยนคน
+            // 🚀 เอา saveToLocal ออก! เซฟแค่ในเครื่องว่ากำลังเลือกใครอยู่
+            localStorage.setItem('kaiten_current_person', currentPerson);
+            
             renderFriends(); 
             renderGrid(); 
         }
@@ -692,9 +695,14 @@
         // --- ระบบวาดจาน ---
         function switchTab(shop) {
             currentShop = shop; 
-            saveToLocal(); // สั่งให้จำว่ากำลังเปิดร้านไหนอยู่
-            document.getElementById('tab-katsu').classList.remove('active'); document.getElementById('tab-sushiro').classList.remove('active');
-            document.getElementById('tab-' + shop).classList.add('active'); document.documentElement.style.setProperty('--brand-color', shop === 'katsu' ? '#e60012' : '#cc0000'); renderGrid();
+            // 🚀 เอา saveToLocal ออก! ให้เซฟแค่ว่าเปิดร้านไหนไว้ในเครื่องก็พอ
+            localStorage.setItem('kaiten_active_shop', currentShop); 
+            
+            document.getElementById('tab-katsu').classList.remove('active'); 
+            document.getElementById('tab-sushiro').classList.remove('active');
+            document.getElementById('tab-' + shop).classList.add('active'); 
+            document.documentElement.style.setProperty('--brand-color', shop === 'katsu' ? '#e60012' : '#cc0000'); 
+            renderGrid();
         }
 
         function renderGrid() {
