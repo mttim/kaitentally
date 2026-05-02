@@ -968,35 +968,56 @@
             
             const roomRef = db.ref('rooms/' + roomId);
             
-            // ใช้ .on('value') เพื่อให้แอป "หูทิพย์" ตลอดเวลา
             roomRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data && data.people) {
-                    // 1. ดึงข้อมูลจำนวนจานล่าสุดมาใช้
+                    let remotePeople = data.people;
+                    let needsSync = false; // ตัวแปรคอยเช็คว่าต้องส่งข้อมูลกลับขึ้น Cloud ไหม
+                    
+                    // 1. ดึงจำนวนจานจาก Cloud
                     if (data.counts) {
                         counts = data.counts;
                     }
 
-                    // 2. ตรวจสอบรายชื่อเพื่อน
-                    let remotePeople = data.people;
+                    // 2. เช็คว่ามี "เรา" ในห้องนี้หรือยัง?
                     const meExists = remotePeople.find(p => p.id === myUserId);
-                    
                     if (!meExists) {
-                        // --- จังหวะที่คนใหม่ (เครื่อง 2) เข้ามาครั้งแรก ---
+                        // ถ้ายังไม่มี ให้เอาชื่อเรายัดใส่กลุ่ม
                         const myName = localStorage.getItem('kaiten_username') || "ฉัน";
                         remotePeople.push({ id: myUserId, name: myName });
-                        
-                        // อัปเดตกลับขึ้น Cloud เพื่อให้เครื่อง 1 เห็นเรา
-                        roomRef.update({ people: remotePeople });
-                    } else {
-                        // --- จังหวะปกติที่ข้อมูลใน Cloud เปลี่ยนแปลง ---
-                        people = remotePeople;
-                        renderFriends();
-                        renderGrid();
+                        needsSync = true; // สั่งให้เตรียมอัปเดตกลับไปบอกเพื่อน
+                    }
+                    
+                    people = remotePeople;
+
+                    // 3. ป้องกันแอปค้าง: ถ้าคนที่เลือกอยู่ (แท็บชื่อ) ไม่มีในห้องนี้แล้ว ให้เด้งกลับมาที่ชื่อตัวเอง
+                    if (!people.find(p => p.id === currentPerson)) {
+                        currentPerson = myUserId;
+                    }
+
+                    // 4. 🚀 จุดแก้บั๊กจานหาย: เช็คว่าทุกคนในห้อง มีตะกร้าจาน (ค่า 0) หรือยัง
+                    people.forEach(p => {
+                        // ถ้าใครยังไม่มีตะกร้าของตัวเอง ให้รันฟังก์ชันเตรียมจานให้
+                        if (!counts.katsu[p.id] || !counts.sushiro[p.id]) {
+                            initPersonData(p.id);
+                            needsSync = true; // มีคนได้ตะกร้าใหม่ ต้องส่งไปบอกเพื่อนด้วย
+                        }
+                    });
+
+                    // 5. วาดหน้าจอใหม่
+                    renderFriends();
+                    renderGrid();
+
+                    // 6. ถ้ามีคนเข้าใหม่ หรือมีการสร้างตะกร้าจานใหม่ ให้ดันข้อมูลที่สมบูรณ์กลับขึ้น Cloud
+                    if (needsSync) {
+                        roomRef.set({
+                            people: people,
+                            counts: counts
+                        });
                     }
                 } else {
-                    // กรณีเป็นคนแรกที่สร้างห้อง (ยังไม่มีข้อมูลใน Cloud)
+                    // ถ้าห้องว่างเปล่า (เพิ่งสร้างใหม่ๆ) ให้ส่งข้อมูลต้นฉบับของเราขึ้นไป
                     saveToLocal(); 
                 }
             });
