@@ -177,6 +177,42 @@
         
         .welcome-input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; margin-bottom: 20px; outline: none; text-align: center; }
         .welcome-input:focus { border-color: var(--brand-color); }
+        /* --- Sidebar New Design --- */
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 0; }
+        .sidebar-section { padding: 15px 20px; border-bottom: 1px solid #f0f0f0; }
+        .section-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: bold; }
+
+        /* Profile Box */
+        .sidebar-profile-box { display: flex; justify-content: space-between; align-items: center; }
+        .profile-main { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { font-size: 20px; background: #eee; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .btn-text-only { background: none; border: none; color: #666; font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+        /* Online Buttons */
+        .btn-group-row { display: flex; gap: 8px; }
+        .btn-online { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .btn-online.create { background: var(--brand-color); color: white; }
+        .btn-online.join { background: #333; color: white; }
+        .helper-text { font-size: 11px; color: #999; margin-top: 8px; line-height: 1.4; }
+
+        /* Room Active Card */
+        .room-active-card { background: #fff5f5; border: 1px solid #ffe3e3; padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .room-status-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+        #room-info-display { font-weight: bold; color: var(--brand-color); font-size: 14px; }
+        .btn-leave-small { background: #fff; border: 1px solid #ddd; padding: 5px 10px; border-radius: 6px; font-size: 12px; color: #e60012; font-weight: bold; }
+
+        /* Quick Save Box */
+        .quick-save-box { display: flex; gap: 5px; margin-bottom: 10px; }
+        .quick-save-box input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        .quick-save-box button { background: #333; color: white; border: none; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+
+        /* Footer & Reset */
+        .sidebar-footer { padding: 15px 20px; }
+        .btn-coffee { width: 100%; padding: 12px; background: #FFF4E5; color: #D97706; border: 1px dashed #FDE68A; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-reset-app { background: none; border: none; color: #ccc; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; width: 100%; justify-content: center; }
+        .btn-reset-app:hover { color: #e60012; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
 <body ontouchstart="">
@@ -227,47 +263,62 @@
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>🍣 Kaiten Tally</h2>
+            <h2><i class="fas fa-cog"></i> ตั้งค่าและจัดการ</h2>
             <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
         </div>
         
-        <div class="sidebar-profile">
-            <div class="sidebar-profile-info">
-                <span>ชื่อของคุณในบิล:</span>
-                <h3 id="display-my-name">ฉัน</h3>
+        <div class="sidebar-list">
+            <div class="sidebar-section">
+                <p class="section-label">ข้อมูลของคุณ</p>
+                <div class="sidebar-profile-box">
+                    <div class="profile-main">
+                        <span class="user-avatar">👤</span>
+                        <h3 id="display-my-name">กำลังโหลด...</h3>
+                    </div>
+                    <button class="btn-text-only" onclick="openEditNameModal()">✏️ แก้ไขชื่อ</button>
+                </div>
             </div>
-            <button class="edit-name-btn" onclick="openEditNameModal()">✏️ เปลี่ยนชื่อ</button>
+
+            <div class="sidebar-section" id="online-section">
+                <p class="section-label">แชร์โต๊ะกับเพื่อน</p>
+                
+                <div id="room-actions-off" style="display: none;">
+                    <div class="btn-group-row">
+                        <button class="btn-online create" onclick="createRoom()">✨ สร้างกลุ่ม</button>
+                        <button class="btn-online join" onclick="openJoinRoomModal()">🤝 เข้ากลุ่ม</button>
+                    </div>
+                    <p class="helper-text">สร้างรหัส 4 หลักเพื่อให้เพื่อนร่วมโต๊ะเห็นจานของคุณแบบเรียลไทม์</p>
+                </div>
+
+                <div id="room-actions-on" style="display: none;">
+                    <div class="room-active-card">
+                        <span class="room-status-dot"></span>
+                        <div id="room-info-display">รหัสห้อง: -</div>
+                        <button class="btn-leave-small" onclick="leaveRoom()">🚪 ออก</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <p class="section-label">กลุ่มที่บันทึกไว้</p>
+                <div class="quick-save-box">
+                    <input type="text" id="save-group-name" placeholder="ชื่อกลุ่ม (เช่น แก๊งออฟฟิศ)">
+                    <button onclick="saveCurrentGroup()">💾 บันทึก</button>
+                </div>
+                <div id="saved-groups-list" class="mini-group-list">
+                    </div>
+            </div>
+
+            <div class="sidebar-section bottom-reset">
+                <button onclick="factoryReset()" class="btn-reset-app">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                    ล้างข้อมูลแอปทั้งหมด
+                </button>
+            </div>
         </div>
 
-        <div style="padding: 20px; background: #eef2f5; border-bottom: 1px solid #eee;">
-            <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #333;">🏠 ระบบห้อง (Room)</p>
-            <div id="current-room-display" style="font-size: 13px; color: #666; margin-bottom: 12px;">สถานะ: ใช้งานคนเดียว</div>
-            
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                <button onclick="createRoom()" style="flex: 1; padding: 10px; background: var(--brand-color); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px;">✨ สร้างกลุ่ม</button>
-                <button onclick="openJoinRoomModal()" style="flex: 1; padding: 10px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px;">🤝 เข้าร่วมกลุ่ม</button>
-            </div>
-            
-            <button id="btn-leave-room" onclick="leaveRoom()" style="width: 100%; padding: 10px; background: #fee; color: #e60012; border: 1px dashed #fcc; border-radius: 8px; font-weight: bold; cursor: pointer; display: none; font-size: 13px;">🚪 ออกจากห้อง</button>
-        </div>
-
-        <div class="sidebar-save-section">
-            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">บันทึกรายชื่อโต๊ะปัจจุบันเก็บไว้เรียกใช้</p>
-            <input type="text" id="save-group-name" placeholder="ตั้งชื่อกลุ่ม (เช่น แก๊งออฟฟิศ)">
-            <button onclick="saveCurrentGroup()">💾 บันทึกกลุ่มนี้</button>
-        </div>
-        <div class="sidebar-list" id="saved-groups-list"></div>
-        <div style="padding: 20px; border-top: 1px solid #eee;">
-            <button onclick="factoryReset()" style="width: 100%; padding: 12px; background: #fee; color: #e60012; border: 1px solid #fcc; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <path d="M3 3v5h5"></path>
-                </svg>
-                ล้างข้อมูลทั้งหมด
-            </button>
-        </div>
-        <div style="padding: 20px; border-top: 1px solid #eee; margin-top: auto;">
-            <button onclick="openDonateModal()" style="width: 100%; padding: 12px; background: #FFF4E5; color: #D97706; border: 2px dashed #FDE68A; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+        <div class="sidebar-footer">
+            <button onclick="openDonateModal()" class="btn-coffee">
                 ☕ สนับสนุนค่ากาแฟ
             </button>
         </div>
@@ -985,23 +1036,19 @@
         }
 
         function updateRoomUI() {
-            const createBtn = document.getElementById('btn-create-room');
-            const joinBtn = document.getElementById('btn-join-room');
-            const leaveBtn = document.getElementById('btn-leave-room');
+            const roomActionsOff = document.getElementById('room-actions-off');
+            const roomActionsOn = document.getElementById('room-actions-on');
             const roomInfo = document.getElementById('room-info-display');
 
             if (roomId) {
-                // อยู่ในห้อง: โชว์ข้อมูลห้องและปุ่มออก
-                if(createBtn) createBtn.style.display = 'none';
-                if(joinBtn) joinBtn.style.display = 'none';
-                if(leaveBtn) leaveBtn.style.display = 'block';
-                if(roomInfo) roomInfo.innerHTML = `<span><i class="fas fa-users"></i> รหัสห้อง: <b>${roomId}</b></span>`;
+                // อยู่ในห้อง
+                if(roomActionsOff) roomActionsOff.style.display = 'none';
+                if(roomActionsOn) roomActionsOn.style.display = 'block';
+                if(roomInfo) roomInfo.innerHTML = `รหัสห้อง: <b>${roomId}</b>`;
             } else {
-                // ไม่มีห้อง: โชว์ปุ่มสร้าง/จอย
-                if(createBtn) createBtn.style.display = 'block';
-                if(joinBtn) joinBtn.style.display = 'block';
-                if(leaveBtn) leaveBtn.style.display = 'none';
-                if(roomInfo) roomInfo.innerHTML = '';
+                // ไม่มีห้อง
+                if(roomActionsOff) roomActionsOff.style.display = 'block';
+                if(roomActionsOn) roomActionsOn.style.display = 'none';
             }
         }
 
