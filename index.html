@@ -538,12 +538,15 @@
                 people[0].id = myUserId;
             }
 
+            // จัดการ UI แบบออฟไลน์ (คลีนๆ)
             updateSidebarNameDisplay();
             renderFriends();
-            saveToLocal(); 
-            
-            // ปิดหน้าต่างจบเลย ไม่ต้องมีคำสั่งอะไรต่อ
             closeModalUI('welcome-modal');
+
+            // 🚀 แก้บั๊กหน้าค้าง: รอให้หน้าต่างปิดสนิทก่อน (หน่วงเวลา 0.4 วิ) แล้วค่อยแอบเซฟขึ้น Firebase
+            setTimeout(() => {
+                saveToLocal();
+            }, 400);
         }
 
         function openEditNameModal() {
@@ -1049,17 +1052,41 @@
         }
 
         function leaveRoom() {
-            showConfirm("ต้องการออกจากห้องปัจจุบันใช่หรือไม่?", () => {
-                // ลบข้อมูลเฉพาะส่วนของห้อง
+            showConfirm("ต้องการออกจากห้องปัจจุบันใช่หรือไม่?\n(เมื่อออกแล้ว จานที่ทุกคนเลือกไว้จะถูกล้าง และเหลือแค่คุณคนเดียว)", () => {
+                
+                // 1. 🚀 ตะโกนบอก Firebase ให้ลบชื่อเราออกจากกลุ่มก่อน!
+                if (roomId && typeof db !== 'undefined') {
+                    const roomRef = db.ref('rooms/' + roomId);
+                    roomRef.once('value').then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data && data.people) {
+                            // คัดกรองเอาชื่อ "ทุกคนที่ยกเว้นเรา" แล้วส่งกลับไปเซฟทับ
+                            const updatedPeople = data.people.filter(p => p.id !== myUserId);
+                            roomRef.update({ people: updatedPeople });
+                        }
+                    });
+                }
+
+                // 2. ล้างข้อมูลของห้องเก่าในเครื่องเรา
+                roomId = null;
                 localStorage.removeItem('kaiten_room_id');
-                localStorage.removeItem('kaiten_people');
-                localStorage.removeItem('kaiten_counts');
-                localStorage.removeItem('kaiten_current_person');
-
-                // ⚠️ ถ้าอยากให้เขาใส่ชื่อใหม่ด้วยตอนเข้าห้องหน้า ให้ลบบรรทัดนี้เพิ่ม:
-                // localStorage.removeItem('kaiten_username'); 
-
-                window.location.reload(); // รีเฟรชเพื่อกลับไปสถานะเริ่มต้น
+                
+                // 3. รีเซ็ตเพื่อนให้เหลือแค่ 'ฉัน' คนเดียว
+                const me = people.find(p => p.id === myUserId) || people[0];
+                people = [me];
+                currentPerson = me.id;
+                
+                // 4. ล้างจานทั้งหมดเป็น 0
+                counts = { katsu: {}, sushiro: {} };
+                initPersonData(me.id);
+                
+                // 5. บันทึกและวาดหน้าจอใหม่
+                saveToLocal();
+                renderFriends();
+                renderGrid();
+                updateRoomUI();
+                
+                showAlert("ออกจากห้องเรียบร้อยแล้วค่ะ", "ออกจากห้อง");
             });
         }
 
