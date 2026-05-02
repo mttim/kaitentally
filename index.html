@@ -464,6 +464,13 @@
             { id: 's100', price: 100, name: 'จานดำ', color: '#1a1a1a', textColor: 'white', border: 'border: 3px solid #444;' }
         ];
 
+        // สร้าง ID ประจำเครื่องถ้ายังไม่มี
+        let myUserId = localStorage.getItem('kaiten_my_id');
+        if (!myUserId) {
+            myUserId = 'p_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('kaiten_my_id', myUserId);
+        }
+
         // --- ระบบโปรไฟล์ผู้ใช้ ---
         let savedShop = localStorage.getItem('kaiten_active_shop');
         let currentShop = savedShop || 'katsu'; 
@@ -911,25 +918,39 @@
         function startFirebaseListener() {
             if (!roomId || typeof db === 'undefined') return;
             
-            // สร้าง "หูทิพย์" คอยฟังข้อมูลในห้องนี้
-            db.ref('rooms/' + roomId).on('value', (snapshot) => {
+            const roomRef = db.ref('rooms/' + roomId);
+            
+            roomRef.on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (data) {
-                    // ถ้ามีข้อมูลบน Firebase ให้เอามาทับข้อมูลในเครื่องเรา
-                    if (data.counts) counts = data.counts;
-                    if (data.people) {
-                        people = data.people;
-                        // ถ้าเครื่องเราไม่มี ID คนที่เราเลือกอยู่ ให้ไปเลือกคนแรก
-                        if (!people.find(p => p.id === currentPerson)) {
-                            currentPerson = people[0].id; 
-                        }
+                
+                if (data && data.people) {
+                    // --- กรณีมีข้อมูลในห้องอยู่แล้ว ---
+                    console.log("ได้รับข้อมูลจากห้อง:", roomId);
+                    
+                    // 1. อัปเดตรายชื่อเพื่อน (ถ้าไม่เหมือนเดิม)
+                    people = data.people;
+                    
+                    // 2. อัปเดตจำนวนจาน
+                    if (data.counts) {
+                        counts = data.counts;
                     }
-                    // วาดหน้าจอใหม่ทันทีที่ข้อมูลเปลี่ยน
+                    
+                    // 3. เช็คว่าตัวเรา (ID ของเรา) อยู่ในรายชื่อที่ดึงมาไหม
+                    // ถ้าไม่มี (เช่น เราเพิ่งจอยครั้งแรก) ให้เพิ่มตัวเองเข้าไปในรายชื่อของห้องนั้น
+                    const meExists = people.find(p => p.id === myUserId);
+                    if (!meExists) {
+                        const myName = localStorage.getItem('kaiten_username') || "ฉัน";
+                        people.push({ id: myUserId, name: myName });
+                        // ส่งข้อมูลที่มีเราเพิ่มเข้าไปกลับขึ้นไปบน Cloud
+                        roomRef.update({ people: people });
+                    }
+
+                    // วาดหน้าจอใหม่
                     renderFriends();
                     renderGrid();
                 } else {
-                    // ถ้าห้องยังว่างเปล่า (เราเป็นคนแรก) ให้ส่งข้อมูลเครื่องเราขึ้นไปเป็นต้นแบบ
-                    saveToLocal();
+                    // --- กรณีห้องยังว่าง (เราเป็นคนแรก) ---
+                    saveToLocal(); 
                 }
             });
         }
@@ -951,11 +972,20 @@
         function confirmJoinRoom() {
             const input = document.getElementById('join-room-input').value.trim();
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
+            
+            // 1. บันทึกรหัสห้อง
             roomId = input;
             localStorage.setItem('kaiten_room_id', roomId);
+            
+            // 2. ล้างข้อมูลจานในเครื่องชั่วคราว เพื่อรอซิงค์จาก Cloud
+            counts = { katsu: {}, sushiro: {} };
+            
+            // 3. เริ่มระบบดักฟังข้อมูล (จะไปรัน startFirebaseListener ที่เราแก้ข้างบน)
+            startFirebaseListener();
+            
             updateRoomUI();
             closeModalUI('join-room-modal');
-            showAlert(`เข้าร่วมห้อง ${roomId} เรียบร้อยแล้ว!`, "สำเร็จ");
+            showAlert(`เข้าร่วมห้อง ${roomId} เรียบร้อยแล้ว!\nกำลังซิงค์ข้อมูลกับเพื่อน...`, "สำเร็จ");
         }
 
         function leaveRoom() {
