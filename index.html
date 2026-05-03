@@ -114,7 +114,9 @@
         }
 
         /* --- Sidebar --- */
-        .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1050; display: none; opacity: 0; transition: opacity 0.3s; }
+        /* แก้ไข Overlay ให้บังหน้าจอหลักและกันการคลิกทะลุ */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2050; opacity: 0; visibility: hidden; transition: 0.3s; }
+        .sidebar-overlay.active { opacity: 1; visibility: visible; }
         .sidebar { position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background: white; z-index: 1100; transition: left 0.3s ease; box-shadow: 2px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         .sidebar.open { left: 0; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -804,38 +806,25 @@
             const groupName = input.value.trim();
             if(!groupName) { showAlert("กรุณาพิมพ์ชื่อกลุ่มก่อนบันทึกค่ะ"); return; }
             
+            // ถ้ายืนยันจะบันทึก ให้เช็คว่าตอนนี้อยู่โหมดออนไลน์หรือออฟไลน์
             if (!roomId) {
-                const generateAndSave = () => {
-                    const tempRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-                    db.ref('rooms/' + tempRoomId).once('value', (snapshot) => {
-                        if (snapshot.exists()) {
-                            generateAndSave(); 
-                        } else {
-                            roomId = tempRoomId;
-                            localStorage.setItem('kaiten_room_id', roomId);
-                            saveToLocal();
-                            startFirebaseListener();
-                            updateRoomUI();
-                            finishSavingGroup(groupName); // ไปบันทึกต่อ
-                        }
-                    });
-                };
-                generateAndSave();
+                // ถ้าออฟไลน์อยู่ -> บันทึกแบบออฟไลน์ไปเลย (ส่ง null ไปแทนรหัสห้อง)
+                finishSavingGroup(groupName, null);
             } else {
-                finishSavingGroup(groupName);
+                // ถ้าออนไลน์อยู่ -> ปักหมุดบอก Firebase ว่าห้ามลบ แล้วบันทึกพร้อมรหัสห้อง
+                if (typeof db !== 'undefined') {
+                    db.ref('rooms/' + roomId + '/isSaved').set(true);
+                }
+                finishSavingGroup(groupName, roomId);
             }
         }
 
-        // 🚀 ฟังก์ชันทำงานตอนจบการบันทึกกลุ่ม
-        function finishSavingGroup(groupName) {
-            // ส่งสัญญาณไปบอก Firebase ว่าห้องนี้ถูกบุ๊กมาร์กไว้ ห้ามลบ!
-            if (roomId && typeof db !== 'undefined') {
-                db.ref('rooms/' + roomId + '/isSaved').set(true);
-            }
-
+        function finishSavingGroup(groupName, savedRoomId) {
             let savedGroups = JSON.parse(localStorage.getItem('kaiten_groups') || '{}');
+            
+            // บันทึกข้อมูลกลุ่ม (ถ้าไม่มีห้องจะเป็น null)
             savedGroups[groupName] = {
-                roomId: roomId,
+                roomId: savedRoomId,
                 people: people.map(p => ({ id: p.id, name: p.name }))
             };
             
@@ -843,8 +832,13 @@
             document.getElementById('save-group-name').value = ''; 
             renderSavedGroups(); 
             
-            const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">${roomId}</div>`;
-            showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้ว!\nรหัสห้องสำหรับกลุ่มนี้คือ:${styledRoomId}`, "สำเร็จ");
+            // แยกข้อความแจ้งเตือนตามสถานะ
+            if (savedRoomId) {
+                const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">⭐ [ ${savedRoomId} ] ⭐</div>`;
+                showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้ว!\nรหัสห้องสำหรับกลุ่มนี้คือ:${styledRoomId}`, "สำเร็จ");
+            } else {
+                showAlert(`บันทึกกลุ่ม "${groupName}" (แบบออฟไลน์) เรียบร้อยแล้วค่ะ!`, "สำเร็จ");
+            }
         }
 
         function renderSavedGroups() {
