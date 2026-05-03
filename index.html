@@ -888,7 +888,36 @@
                 renderFriends(); renderGrid(); toggleSidebar();
             });
         }
-        function deleteGroup(name) { showConfirm(`ลบกลุ่ม "${name}" ทิ้งใช่ไหม?`, () => { let savedGroups = JSON.parse(localStorage.getItem('kaiten_groups') || '{}'); delete savedGroups[name]; localStorage.setItem('kaiten_groups', JSON.stringify(savedGroups)); renderSavedGroups(); }); }
+        function deleteGroup(name) { 
+            showConfirm(`ลบกลุ่ม "${name}" ทิ้งใช่ไหม?`, () => { 
+                let savedGroups = JSON.parse(localStorage.getItem('kaiten_groups') || '{}'); 
+                const groupData = savedGroups[name];
+                const targetRoomId = groupData ? groupData.roomId : null; // ดึงรหัสห้องของกลุ่มที่จะลบ
+
+                // 1. ลบจากในเครื่องเรา
+                delete savedGroups[name]; 
+                localStorage.setItem('kaiten_groups', JSON.stringify(savedGroups)); 
+                renderSavedGroups(); 
+
+                // 2. 🚀 จัดการทำความสะอาด Firebase
+                if (targetRoomId && typeof db !== 'undefined') {
+                    const roomRef = db.ref('rooms/' + targetRoomId);
+                    roomRef.once('value').then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            // ปลดล็อคป้ายห้ามลบ
+                            roomRef.child('isSaved').remove();
+
+                            // ถ้าไม่มีคนเหลืออยู่ในห้องนี้แล้ว ให้ลบทิ้งทันทีเพื่อคืนพื้นที่รหัส!
+                            if (!data.people || data.people.length === 0) {
+                                roomRef.remove();
+                                console.log(`ลบห้องขยะ ${targetRoomId} ทันทีเพราะไม่มีคนอยู่`);
+                            }
+                        }
+                    });
+                }
+            }); 
+        }
 
         // --- ระบบวาดจาน ---
         function switchTab(shop) {
