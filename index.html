@@ -214,6 +214,45 @@
         .btn-reset-app:hover { color: #e60012; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+
+        /* --- Sidebar & Scroll Logic --- */
+        html.modal-open, body.modal-open { overflow: hidden !important; height: 100% !important; }
+        
+        .sidebar { 
+            position: fixed; top: 0; left: -300px; width: 280px; height: 100dvh; 
+            background: white; z-index: 2100; transition: left 0.3s ease; 
+            display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar.open { left: 0; }
+        
+        /* ส่วนที่ทำให้ Scroll ได้ */
+        .sidebar-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        .sidebar-section { padding: 15px 20px; border-bottom: 1px solid #f0f0f0; }
+        .section-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: bold; }
+
+        /* จัดระเบียบปุ่มด้านล่าง */
+        .sidebar-footer { padding: 15px; border-top: 1px solid #eee; background: #fff; }
+        .footer-buttons-row { display: flex; gap: 8px; }
+        
+        .btn-coffee-mini, .btn-reset-mini { 
+            flex: 1; padding: 12px 5px; border-radius: 10px; font-size: 12px; 
+            font-weight: bold; border: none; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 5px; 
+        }
+        .btn-coffee-mini { background: #FFF4E5; color: #D97706; border: 1px solid #FDE68A; }
+        .btn-reset-mini { background: #f8f9fa; color: #999; border: 1px solid #eee; }
+
+        /* อื่นๆ */
+        .sidebar-profile-box { display: flex; justify-content: space-between; align-items: center; }
+        .profile-main { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { font-size: 20px; background: #eee; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .btn-text-only { background: none; border: none; color: #666; font-size: 12px; text-decoration: underline; }
+        .btn-group-row { display: flex; gap: 8px; }
+        .btn-online { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; color: white; }
+        .btn-online.create { background: var(--brand-color); }
+        .btn-online.join { background: #333; }
     </style>
 </head>
 <body ontouchstart="">
@@ -262,62 +301,62 @@
     </div>
     
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>🍣 Kaiten Tally</h2>
+            <h2><i class="fas fa-cog"></i> ตั้งค่าและจัดการ</h2>
             <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
         </div>
         
-        <div class="sidebar-profile">
-            <div class="sidebar-profile-info">
-                <span>ชื่อของคุณในบิล:</span>
-                <h3 id="display-my-name">ฉัน</h3>
-            </div>
-            <button class="edit-name-btn" onclick="openEditNameModal()">✏️ เปลี่ยนชื่อ</button>
-        </div>
-
-        <div class="sidebar-section" id="online-section">
-            <p class="section-label">ปาร์ตี้ออนไลน์</p>
-            
-            <div id="room-actions-off" style="display: none;">
-                <div class="btn-group-row">
-                    <button class="btn-online create" onclick="createRoom()">✨ สร้างกลุ่ม</button>
-                    <button class="btn-online join" onclick="openJoinRoomModal()">🤝 เข้ากลุ่ม</button>
-                </div>
-                <p class="helper-text">สร้างรหัส 4 หลักเพื่อให้เพื่อนร่วมโต๊ะเห็นจานของคุณแบบเรียลไทม์</p>
-            </div>
-
-            <div id="room-actions-on" style="display: none;">
-                <div class="room-active-card">
-                    <span class="room-status-dot"></span>
-                    <div id="room-info-display">รหัสห้อง: -</div>
-                    <button class="btn-leave-small" onclick="leaveRoom()">🚪 ออก</button>
+        <div class="sidebar-list">
+            <div class="sidebar-section">
+                <p class="section-label">ข้อมูลของคุณ</p>
+                <div class="sidebar-profile-box">
+                    <div class="profile-main">
+                        <span class="user-avatar">👤</span>
+                        <h3 id="display-my-name">ฉัน</h3>
+                    </div>
+                    <button class="btn-text-only" onclick="openEditNameModal()">✏️ แก้ไขชื่อ</button>
                 </div>
             </div>
+
+            <div class="sidebar-section" id="online-section">
+                <p class="section-label">แชร์โต๊ะกับเพื่อน</p>
+                <div id="room-actions-off">
+                    <div class="btn-group-row">
+                        <button class="btn-online create" onclick="createRoom()">✨ เปิดโต๊ะ</button>
+                        <button class="btn-online join" onclick="openJoinRoomModal()">🤝 เข้ากลุ่ม</button>
+                    </div>
+                    <p class="helper-text">ซิงค์จานกับเพื่อนในโต๊ะแบบเรียลไทม์</p>
+                </div>
+                <div id="room-actions-on" style="display: none;">
+                    <div class="room-active-card">
+                        <span class="room-status-dot"></span>
+                        <div id="room-info-display">รหัสโต๊ะ: -</div>
+                        <button class="btn-leave-small" onclick="leaveRoom()">🚪 ออก</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <p class="section-label">กลุ่มที่บันทึกไว้</p>
+                <div class="quick-save-box">
+                    <input type="text" id="save-group-name" placeholder="ชื่อกลุ่ม...">
+                    <button onclick="saveCurrentGroup()">💾 บันทึก</button>
+                </div>
+                <div id="saved-groups-list" class="mini-group-list"></div>
+            </div>
         </div>
 
-        <div class="sidebar-section">
-            <p class="section-label">กลุ่มที่บันทึกไว้</p>
-            <div class="quick-save-box">
-                <input type="text" id="save-group-name" placeholder="ชื่อกลุ่ม (เช่น แก๊งออฟฟิศ)">
-                <button onclick="saveCurrentGroup()">💾 บันทึก</button>
+        <div class="sidebar-footer">
+            <div class="footer-buttons-row">
+                <button onclick="openDonateModal()" class="btn-coffee-mini">
+                    ☕ สนับสนุน
+                </button>
+                <button onclick="factoryReset()" class="btn-reset-mini">
+                    🔄 ล้างแอป
+                </button>
             </div>
-            <div id="saved-groups-list" class="mini-group-list">
-                </div>
-        </div>
-        <div style="padding: 20px; border-top: 1px solid #eee;">
-            <button onclick="factoryReset()" style="width: 100%; padding: 12px; background: #fee; color: #e60012; border: 1px solid #fcc; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <path d="M3 3v5h5"></path>
-                </svg>
-                ล้างข้อมูลทั้งหมด
-            </button>
-        </div>
-        <div style="padding: 20px; border-top: 1px solid #eee; margin-top: auto;">
-            <button onclick="openDonateModal()" style="width: 100%; padding: 12px; background: #FFF4E5; color: #D97706; border: 2px dashed #FDE68A; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
-                ☕ สนับสนุนค่ากาแฟ
-            </button>
         </div>
     </div>
 
@@ -688,9 +727,27 @@
 
         // --- ระบบ Sidebar ---
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar'); const overlay = document.getElementById('sidebar-overlay');
-            if(sidebar.classList.contains('open')) { sidebar.classList.remove('open'); overlay.style.opacity = '0'; setTimeout(() => overlay.style.display = 'none', 300); } 
-            else { overlay.style.display = 'block'; setTimeout(() => { overlay.style.opacity = '1'; sidebar.classList.add('open'); }, 10); renderSavedGroups(); }
+            const sidebar = document.getElementById('sidebar'); 
+            const overlay = document.getElementById('sidebar-overlay');
+            const html = document.documentElement;
+
+            if(sidebar.classList.contains('open')) { 
+                // ปิด
+                sidebar.classList.remove('open'); 
+                overlay.classList.remove('active');
+                document.body.classList.remove('modal-open');
+                html.classList.remove('modal-open');
+            } else { 
+                // เปิด
+                sidebar.classList.add('open'); 
+                overlay.classList.add('active');
+                document.body.classList.add('modal-open');
+                html.classList.add('modal-open');
+                
+                if (typeof renderSavedGroups === "function") renderSavedGroups();
+                if (typeof updateSidebarNameDisplay === "function") updateSidebarNameDisplay();
+                if (typeof updateRoomUI === "function") updateRoomUI();
+            }
         }
 
         function saveCurrentGroup() {
