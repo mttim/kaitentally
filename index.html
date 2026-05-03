@@ -834,10 +834,10 @@
             
             // แยกข้อความแจ้งเตือนตามสถานะ
             if (savedRoomId) {
-                const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">⭐ [ ${savedRoomId} ] ⭐</div>`;
+                const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">${savedRoomId}</div>`;
                 showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้ว!\nรหัสห้องสำหรับกลุ่มนี้คือ:${styledRoomId}`, "สำเร็จ");
             } else {
-                showAlert(`บันทึกกลุ่ม "${groupName}" (แบบออฟไลน์) เรียบร้อยแล้วค่ะ!`, "สำเร็จ");
+                showAlert(`บันทึกกลุ่ม "${groupName}" เรียบร้อยแล้วค่ะ!`, "สำเร็จ");
             }
         }
 
@@ -1240,7 +1240,7 @@
                     startFirebaseListener();
                     updateRoomUI();
                     
-                    const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">⭐ [ ${roomId} ] ⭐</div>`;
+                    const styledRoomId = `<div style="font-size: 28px; letter-spacing: 5px; font-weight: bold; color: var(--brand-color); margin: 15px 0;">${roomId}</div>`;
                     showAlert(`รหัสห้องของคุณคือ:${styledRoomId}บอกรหัสนี้ให้เพื่อนกดเข้าร่วมได้เลยค่ะ`, "✨ สร้างกลุ่มสำเร็จ!");
                 }
             });
