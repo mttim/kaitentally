@@ -481,7 +481,30 @@
                 <button class="close-btn" onclick="closeBill()">ปิด</button>
                 <button class="btn-save" id="btn-save-img" onclick="saveAsImage()">📸 เซฟรูปบิล</button>
             </div>
+            
+            <button id="btn-notify-friends" onclick="notifyFriendsCheckout()" style="display: none; width: 100%; background: #22c55e; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
+                🔔 แจ้งยอดโอนเข้าเครื่องเพื่อน
+            </button>
+
             <button class="reset-btn" onclick="promptReset()">ล้างจำนวนจานเป็น 0 เริ่มใหม่</button>
+        </div>
+    </div>
+
+    <div class="modal" id="checkout-alert-modal" style="z-index: 5000;">
+        <div class="modal-content" style="max-width: 320px; text-align: center;">
+            <div style="background: #e60012; color: white; padding: 15px; border-radius: 12px 12px 0 0; margin: -20px -20px 15px -20px;">
+                <h2 style="margin: 0; font-size: 20px;">🔔 ได้เวลาจ่ายค่าซูชิแล้ว!</h2>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 5px;">ยอดของกินของคุณคือ</p>
+            <h1 id="checkout-my-total" style="color: var(--brand-color); font-size: 36px; margin: 0 0 10px 0;">0.00 ฿</h1>
+            <p style="color: #333; font-weight: bold; margin-bottom: 15px;">โอนเงินคืนให้: <span id="checkout-payer-name" style="color: #15803d; text-decoration: underline;">-</span></p>
+
+            <div id="checkout-qr-box" style="margin-bottom: 10px;">
+                <img id="checkout-qr-img" src="" crossorigin="anonymous" style="width: 150px; height: 150px; border: 1px solid #eee; border-radius: 12px; padding: 5px; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <p style="font-size: 11px; color: #888; margin-top: 8px;">* สแกน QR นี้ ยอดเงินจะตรงเป๊ะตามที่คุณกินเลย!</p>
+            </div>
+
+            <button class="btn-ok" onclick="closeModalUI('checkout-alert-modal')" style="margin-top: 10px; background: #333;">รับทราบ 👌</button>
         </div>
     </div>
 
@@ -670,6 +693,7 @@
         // โค้ดที่ต้องเพิ่ม:
         let savedRoom = localStorage.getItem('kaiten_room_id');
         let roomId = savedRoom || null;
+        let localLastCheckout = 0; // ตัวแปรป้องกัน Pop-up เด้งซ้ำ
 
 
         
@@ -775,8 +799,67 @@
             document.getElementById('bill-details').innerHTML = detailsHTML;
             document.getElementById('grand-total').innerText = tableGrandTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
+            // 🚀 ซ่อน/แสดง ปุ่มแจ้งเตือนเพื่อน (เปิดโต๊ะออนไลน์ถึงจะกดส่งได้)
+            document.getElementById('btn-notify-friends').style.display = roomId ? 'block' : 'none';
+            
             updatePayerName();
             openModalUI('bill-modal');
+        }
+
+        // --- 🚀 ฟังก์ชันส่งสัญญาณเช็คบิลหาทุกคน (ทำงานเฉพาะออนไลน์) ---
+        function notifyFriendsCheckout() {
+            if (!roomId || typeof db === 'undefined') return;
+            const select = document.getElementById('payer-select');
+            const payerId = select.value;
+            
+            showConfirm("ระบบจะส่ง Pop-up แจ้งยอดโอนและ QR Code ไปยังมือถือเพื่อนทุกคนในโต๊ะ แน่ใจหรือไม่?", () => {
+                db.ref('rooms/' + roomId + '/checkout').set({
+                    active: true,
+                    payerId: payerId,
+                    timestamp: Date.now()
+                });
+                showAlert("ส่งการแจ้งเตือนไปยังหน้าจอเพื่อนทุกคนเรียบร้อยแล้วค่ะ! 🚀", "แจ้งเตือนสำเร็จ");
+            });
+        }
+
+        // --- 🚀 ฟังก์ชันรับสัญญาณเด้งเตือน (ทำงานเฉพาะลูกหนี้) ---
+        function showPersonalCheckoutAlert(payerId) {
+            // ถ้าตัวเองเป็นคนจ่ายเอง หรือยังไม่ตั้งชื่อ (เพิ่งเข้า) ไม่ต้องเด้ง
+            if (payerId === myUserId || !localStorage.getItem('kaiten_username')) return; 
+
+            const payer = people.find(p => p.id === payerId);
+            if (!payer) return;
+
+            // คำนวณยอดเงินของตัวเองล้วนๆ
+            let myFoodTotal = 0;
+            const activeData = currentShop === 'katsu' ? katsuData : sushiroData;
+            
+            activeData.forEach(plate => {
+                let qty = counts[currentShop][myUserId][plate.id] || 0;
+                if (qty > 0) { myFoodTotal += qty * plate.price; }
+            });
+
+            if (myFoodTotal === 0) return; // ถ้าไม่ได้กินอะไรเลย ไม่ต้องทวง!
+
+            let mySC = myFoodTotal * 0.10;
+            let myGrandTotal = myFoodTotal + mySC;
+
+            document.getElementById('checkout-my-total').innerText = myGrandTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ฿';
+            document.getElementById('checkout-payer-name').innerText = payer.name;
+
+            const qrBox = document.getElementById('checkout-qr-box');
+            const qrImg = document.getElementById('checkout-qr-img');
+
+            if (payer.promptpay && payer.promptpay.trim() !== '') {
+                const ppClean = payer.promptpay.replace(/[^0-9]/g, '');
+                // กำหนดยอดเงินลงใน QR Code เป๊ะๆ
+                qrImg.src = `https://promptpay.io/${ppClean}/${myGrandTotal.toFixed(2)}.png`;
+                qrBox.style.display = 'block';
+            } else {
+                qrBox.style.display = 'none';
+            }
+
+            openModalUI('checkout-alert-modal');
         }
 
         function updatePayerName() {
@@ -1218,37 +1301,29 @@
         function startFirebaseListener() {
             if (!roomId || typeof db === 'undefined') return;
             
-            // 🚀 ปิดหูทิพย์ของห้องเก่าก่อน (ถ้ามี) เพื่อไม่ให้ข้อมูลตีกัน
-            if (currentRoomRef) {
-                currentRoomRef.off();
-            }
-            
+            if (currentRoomRef) currentRoomRef.off();
             currentRoomRef = db.ref('rooms/' + roomId);
             
             currentRoomRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 
                 if (data && data.people) {
-                    let remotePeople = data.people;
+                    let remotePeople = data.people.filter(p => p !== null);
                     let needsSync = false;
                     
                     if (data.counts) { counts = data.counts; }
 
-                    // กรองเผื่อมีค่าว่าง (null) หลุดมาจากความเอ๋อของ Firebase
-                    remotePeople = remotePeople.filter(p => p !== null);
-
                     const meExists = remotePeople.find(p => p.id === myUserId);
                     if (!meExists) {
                         const myName = localStorage.getItem('kaiten_username') || "ฉัน";
-                        remotePeople.push({ id: myUserId, name: myName });
+                        const myPP = localStorage.getItem('kaiten_promptpay') || "";
+                        remotePeople.push({ id: myUserId, name: myName, promptpay: myPP });
                         needsSync = true;
                     }
                     
                     people = remotePeople;
 
-                    if (!people.find(p => p.id === currentPerson)) {
-                        currentPerson = myUserId;
-                    }
+                    if (!people.find(p => p.id === currentPerson)) currentPerson = myUserId;
 
                     people.forEach(p => {
                         if (!counts.katsu[p.id] || !counts.sushiro[p.id]) {
@@ -1257,13 +1332,25 @@
                         }
                     });
 
-                    renderFriends();
-                    renderGrid();
-                    updateRoomUI();
+                    renderFriends(); renderGrid(); updateRoomUI();
 
                     if (needsSync) {
-                        currentRoomRef.set({ people: people, counts: counts });
+                        // 🚀 ใช้ .update เพื่อไม่ให้ไปลบทับระบบ Check-out ของห้อง
+                        currentRoomRef.update({ people: people, counts: counts });
                     }
+
+                    // 🚀 Killer Feature: ดักจับสัญญาณ Check-out
+                    if (data.checkout && data.checkout.active) {
+                        // เช็คว่าสัญญาณนี้ใหม่กว่าที่เราเคยรับไหม
+                        if (data.checkout.timestamp > localLastCheckout) {
+                            localLastCheckout = data.checkout.timestamp;
+                            // ถ้าคนกดส่ง ไม่เกิน 1 นาทีที่แล้ว (ป้องกันกรณีเข้าห้องมาใหม่แล้วเจอของเมื่อวาน)
+                            if (Date.now() - data.checkout.timestamp < 60000) {
+                                showPersonalCheckoutAlert(data.checkout.payerId);
+                            }
+                        }
+                    }
+
                 } else {
                     saveToLocal(); 
                 }
