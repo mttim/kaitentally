@@ -1256,20 +1256,28 @@
             const input = document.getElementById('join-room-input').value.trim();
             if(input.length < 4) { showAlert("กรุณากรอกรหัส 4 หลักให้ถูกต้องค่ะ"); return; }
 
-            if (currentRoomRef) {
-                currentRoomRef.off();
-                currentRoomRef = null;
-            }
+            // 🚀 เปลี่ยนมาเช็คกับ Firebase ก่อนว่ามีห้องนี้อยู่จริงไหม?
+            db.ref('rooms/' + input).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    // ถ้าพบห้อง (snapshot.exists() เป็น true) -> ให้เข้าห้องได้ตามปกติ
+                    if (currentRoomRef) {
+                        currentRoomRef.off();
+                        currentRoomRef = null;
+                    }
 
-            roomId = input;
-            localStorage.setItem('kaiten_room_id', roomId);
-            counts = { katsu: {}, sushiro: {} };
-            
-            startFirebaseListener();
-            updateRoomUI();
+                    roomId = input;
+                    localStorage.setItem('kaiten_room_id', roomId);
+                    counts = { katsu: {}, sushiro: {} }; // ล้างจานตัวเองทิ้ง เตรียมรับข้อมูลจากโต๊ะเพื่อน
+                    
+                    startFirebaseListener();
+                    updateRoomUI();
 
-            // ปิดหน้าต่างอย่างเดียวจบ ให้แอนิเมชันของ iOS จัดการตัวเอง
-            closeModalUI('join-room-modal');
+                    closeModalUI('join-room-modal');
+                } else {
+                    // ถ้าไม่พบห้อง -> เด้งแจ้งเตือนและไม่ให้เข้า
+                    showAlert("ไม่พบรหัสห้องนี้ค่ะ โปรดตรวจสอบกับเพื่อนอีกครั้งนะคะ", "หาห้องไม่เจอ ❌");
+                }
+            });
         }
 
         function leaveRoom() {
