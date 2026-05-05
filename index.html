@@ -514,14 +514,36 @@
             </div>
 
             <div style="padding: 0 20px 20px 20px; display: flex; flex-direction: column; gap: 8px;">
+                <button id="btn-mark-paid" onclick="markAsPaid()" style="width: 100%; background: #22c55e; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; margin: 0; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
+                    ✅ โอนให้แล้วนะ!
+                </button>
                 <button class="btn-save" id="btn-save-checkout" onclick="savePersonalCheckoutAsImage()" style="width: 100%; margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    บันทึก QR Code
+                    เซฟรูปยอดโอนนี้
                 </button>
                 <button class="close-btn" onclick="closeModalUI('checkout-alert-modal')" style="width: 100%; padding: 12px; font-size: 14px;">
                     ปิดหน้าต่าง
                 </button>
             </div>
+        </div>
+    </div>
+
+    <div class="modal" id="payer-status-modal" style="z-index: 6000;">
+        <div class="modal-content" style="max-width: 320px; text-align: left;">
+            <h2 style="margin-top: 0; color: var(--brand-color); text-align: center;">📊 สถานะการโอนเงิน</h2>
+            <p style="color: #666; font-size: 13px; text-align: center; margin-bottom: 20px;">รายชื่อจะอัปเดตอัตโนมัติเมื่อเพื่อนกดปุ่ม "โอนแล้ว"</p>
+            
+            <div style="background: #e6f6ec; border: 1px solid #22c55e; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                <h3 style="color: #15803d; font-size: 16px; margin: 0 0 10px 0;">✅ โอนแล้ว</h3>
+                <ul id="paid-list" style="list-style: none; padding: 0; margin: 0; color: #166534; font-weight: bold;"></ul>
+            </div>
+            
+            <div style="background: #fee2e2; border: 1px solid #ef4444; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #b91c1c; font-size: 16px; margin: 0 0 10px 0;">⏳ รอโอน</h3>
+                <ul id="pending-list" style="list-style: none; padding: 0; margin: 0; color: #991b1b; font-weight: bold;"></ul>
+            </div>
+            
+            <button class="btn-ok" onclick="closeModalUI('payer-status-modal')" style="margin-top: 0; background: #333;">ปิดหน้าต่าง</button>
         </div>
     </div>
 
@@ -1052,19 +1074,79 @@
         }
 
         // --- 🚀 ฟังก์ชันส่งสัญญาณเช็คบิลหาทุกคน (Online) ---
+        // --- 🚀 อัปเดต: ฟังก์ชันส่งสัญญาณเช็คบิลพร้อมสร้างรายชื่อลูกหนี้ ---
         function notifyFriendsCheckout() {
             if (!roomId || typeof db === 'undefined') return;
             const select = document.getElementById('payer-select');
             const payerId = select.value;
             
+            // 1. คำนวณว่าใครมีหนี้ต้องจ่ายบ้าง
+            let oweStatus = {};
+            const activeData = currentShop === 'katsu' ? katsuData : sushiroData;
+            
+            people.forEach(p => {
+                if (p.id === payerId) return; // เจ้ามือไม่ต้องโอนให้ตัวเอง
+                let foodTotal = 0;
+                activeData.forEach(plate => {
+                    let qty = counts[currentShop][p.id][plate.id] || 0;
+                    if (qty > 0) foodTotal += qty * plate.price;
+                });
+                if (foodTotal > 0) {
+                    oweStatus[p.id] = false; // สร้างตั๋วหนี้ (false = ยังไม่จ่าย)
+                }
+            });
+
             showConfirm("ระบบจะส่ง Pop-up แจ้งยอดโอนและ QR Code ไปยังมือถือเพื่อนทุกคนในโต๊ะ แน่ใจหรือไม่?", () => {
                 db.ref('rooms/' + roomId + '/checkout').set({
                     active: true,
                     payerId: payerId,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    status: oweStatus // 🚀 ส่งรายชื่อลูกหนี้ขึ้น Cloud
                 });
-                showAlert("ส่งการแจ้งเตือนไปยังหน้าจอเพื่อนทุกคนเรียบร้อยแล้วค่ะ! 🚀", "แจ้งเตือนสำเร็จ");
+                
+                closeModalUI('bill-modal'); // ปิดหน้าบิล
+                renderPayerStatus(oweStatus); // วาดรายชื่อ
+                openModalUI('payer-status-modal'); // เปิดหน้า Dashboard แทน
             });
+        }
+
+        // --- 🚀 ใหม่: ฟังก์ชันอัปเดตหน้าจอ Dashboard ของเจ้ามือ ---
+        function renderPayerStatus(statusObj) {
+            const paidList = document.getElementById('paid-list');
+            const pendingList = document.getElementById('pending-list');
+            paidList.innerHTML = ''; pendingList.innerHTML = '';
+
+            let allPaid = true;
+
+            for (let uid in statusObj) {
+                let person = people.find(p => p.id === uid);
+                let name = person ? person.name : 'เพื่อน';
+                
+                if (statusObj[uid] === true) {
+                    paidList.innerHTML += `<li style="padding: 5px 0;">- ${name}</li>`;
+                } else {
+                    pendingList.innerHTML += `<li style="padding: 5px 0;">- ${name}</li>`;
+                    allPaid = false;
+                }
+            }
+
+            if (paidList.innerHTML === '') paidList.innerHTML = '<li style="font-size: 13px; font-weight: normal; opacity: 0.7;">ยังไม่มีคนโอน</li>';
+            if (pendingList.innerHTML === '') {
+                pendingList.innerHTML = '<li style="font-size: 13px; font-weight: normal; opacity: 0.7;">ครบแล้วทุกคน! 🎉</li>';
+                if(allPaid) {
+                    setTimeout(() => { showAlert("ทุกคนโอนเงินให้คุณครบหมดแล้วครับ! 🎉", "ปิดจ๊อบ!"); }, 500);
+                }
+            }
+        }
+
+        // --- 🚀 ใหม่: ฟังก์ชันสำหรับเพื่อน กดปุ่ม "โอนแล้วจ้า" ---
+        function markAsPaid() {
+            if (!roomId || typeof db === 'undefined') return;
+            // บอก Firebase ว่า "ฉันจ่ายแล้วนะ!"
+            db.ref('rooms/' + roomId + '/checkout/status/' + myUserId).set(true);
+            
+            closeModalUI('checkout-alert-modal');
+            showAlert("แจ้งเจ้ามือเรียบร้อยแล้วว่าคุณโอนแล้ว! ขอบคุณที่อุดหนุนครับ 🎉", "สำเร็จ");
         }
 
         // --- 🚀 ฟังก์ชันรับสัญญาณเด้งเตือน (ลูกหนี้) ---
@@ -1395,12 +1477,20 @@
                     }
 
                     // 🚀 โค้ดดักจับสัญญาณ (ใส่ไว้ก่อนบรรทัด } else { saveToLocal(); } ใน startFirebaseListener)
+                    // 🚀 โค้ดดักจับสัญญาณ (ใส่ไว้ก่อนบรรทัด } else { saveToLocal(); })
                     if (data.checkout && data.checkout.active) {
+                        
+                        // 1. สำหรับฝั่งลูกหนี้ (รับ Pop-up แจ้งยอด)
                         if (data.checkout.timestamp > localLastCheckout) {
                             localLastCheckout = data.checkout.timestamp;
-                            if (Date.now() - data.checkout.timestamp < 60000) { // ต้องเป็นบิลใหม่ใน 1 นาที
+                            if (Date.now() - data.checkout.timestamp < 60000) { 
                                 showPersonalCheckoutAlert(data.checkout.payerId);
                             }
+                        }
+
+                        // 2. สำหรับฝั่งเจ้ามือ (รับอัปเดตสถานะรายคนแบบ Real-time)
+                        if (data.checkout.payerId === myUserId && data.checkout.status) {
+                            renderPayerStatus(data.checkout.status);
                         }
                     }
                 } else {
